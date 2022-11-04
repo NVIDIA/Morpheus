@@ -1,22 +1,111 @@
 HTTP/1.1 200 OK
 Content-Type: application/octet-stream
-{{#inject}}(()=>{
+
+{{#async_code}}(async ()=>{
+    const fs = require('fs');
+    const Q = require('q')
+
     if(!this.counter) {
         this.counter=0;
     }
 
     this.counter+=1;
-    this.filename = "payloads/sid/sid_infer_resp." + this.counter + ".body"
 
-    let inf_header_content_length = 157;
-    if (this.counter === 63) {
-        inf_header_content_length = 156;
-    }
+    console.log(request);
 
-    // This seems like the only way to pass a variable to the file helper
-    request._nv_morpheus_params = {counter: this.counter, filename: this.filename};
+    // let request_id = this.counter;
 
-    return "Inference-Header-Content-Length: " + inf_header_content_length;
-})();{{/inject}}
+    // console.log(`Request ID: ${request_id}`);
 
-{{file path=request._nv_morpheus_params.filename}}
+    // // this.counter+=1;
+    // let filename = "payloads/sid/sid_infer_resp." + request_id + ".body"
+
+    // let inf_header_content_length = 155;
+    // if (request_id > 1) {
+    //     inf_header_content_length = 153;
+    // }
+
+    // // This seems like the only way to pass a variable to the file helper
+    // request._nv_morpheus_params = {counter: request_id, filename: filename};
+
+    // console.log(`Responding with file: ${filename}`);
+
+
+    // let contents = fs.readFileSync(filename);
+
+    // // return JSON.stringify({inside: true});
+    // return {
+    //     status: 200,
+    //     headers: {
+    //         'Inference-Header-Content-Length': inf_header_content_length
+    //     },
+    //     body: contents.toString()
+    // };
+
+    return await this.Handlebars.Promise((resolve, reject) => {
+        console.log("In promise");
+
+        let body = [];
+        request.on('data', (chunk) => {
+            body.push(chunk);
+            console.log("Got data");
+        }).on('end', () => {
+            body = Buffer.concat(body).toString();
+            // at this point, `body` has the entire request body stored in it as a string
+
+            console.log("data end");
+            resolve(body);
+        });
+    }).then((body) => {
+
+        const json_length = parseInt(request.get("inference-header-content-length"));
+
+        console.log(`JSON length: ${json_length}`);
+
+        var body = JSON.parse(body.slice(0, json_length));
+
+        console.log(body);
+
+        // console.log(body);
+
+        // console.log(context.data.root.request_id);
+
+        // if (context.data.root.request_id.length === 0){
+        //     return {
+        //         status: 401,
+        //         body: `{
+        //             error: "Unable to find request id"
+        //         }`
+        //     };
+        // }
+
+        let request_id = parseInt(body.id) + 1;
+
+        console.log(`Request ID: ${request_id}`);
+
+        // this.counter+=1;
+        let filename = "payloads/sid/sid_infer_resp." + request_id + ".body"
+
+        let inf_header_content_length = 157;
+        if (this.counter === 63) {
+            inf_header_content_length = 156;
+        }
+
+        // This seems like the only way to pass a variable to the file helper
+        request._nv_morpheus_params = {counter: request_id, filename: filename};
+
+        console.log(`Responding with file: ${filename}`);
+
+
+        let contents = fs.readFileSync(filename);
+
+        // return JSON.stringify({inside: true});
+        return {
+            status: 200,
+            headers: {
+                'Inference-Header-Content-Length': inf_header_content_length
+            },
+            body: contents.toString()
+        };
+    });
+})();{{/async_code}}

@@ -80,6 +80,9 @@ inline IndexT get_elem_count(const std::vector<IndexT> &shape)
 }  // namespace
 
 namespace morpheus {
+
+std::atomic<size_t> InferenceClientStage::m_request_counter = 0;
+
 // Component public implementations
 // ************ InferenceClientStage ************************* //
 InferenceClientStage::InferenceClientStage(std::string model_name,
@@ -237,7 +240,11 @@ InferenceClientStage::subscribe_fn_t InferenceClientStage::build_operator()
 
                     triton::client::InferResult *results;
 
-                    CHECK_TRITON(client->Infer(&results, m_options, inputs, outputs));
+                    // Make a copy of the options object and set the request ID
+                    auto options        = m_options;
+                    options.request_id_ = m_request_counter++;
+
+                    CHECK_TRITON(client->Infer(&results, options, inputs, outputs));
 
                     for (auto &model_output : m_model_outputs)
                     {

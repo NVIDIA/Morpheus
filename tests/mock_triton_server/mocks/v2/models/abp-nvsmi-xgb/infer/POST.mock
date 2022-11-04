@@ -1,3 +1,4 @@
+{{assign name='request_id' value=(capture from='body' using='jsonpath' selector='$.id') }}
 HTTP/1.1 200 OK
 Content-Type: application/octet-stream
 {{#inject}}(()=>{
@@ -5,17 +6,24 @@ Content-Type: application/octet-stream
         this.counter=0;
     }
 
-    this.counter+=1;
-    this.filename = "payloads/abp/abp_infer_resp." + this.counter + ".body"
+    console.log("Hit Infer");
+
+    let request_id = context.data.root.request_id;
+
+    console.log(`Request ID: ${request_id}");
+
+    // this.counter+=1;
+    let filename = "payloads/abp/abp_infer_resp." + request_id + ".body"
 
     let inf_header_content_length = 155;
-    if (this.counter > 1) {
+    if (request_id > 1) {
         inf_header_content_length = 153;
     }
 
     // This seems like the only way to pass a variable to the file helper
-    request._nv_morpheus_params = {counter: this.counter, filename: this.filename};
+    request._nv_morpheus_params = {counter: request_id, filename: filename};
 
+    console.log(`Responding with file: ${filename}`);
 
     return "Inference-Header-Content-Length: " + inf_header_content_length;
 })();{{/inject}}

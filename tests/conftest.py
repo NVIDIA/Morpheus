@@ -13,12 +13,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import ctypes
 import importlib
 import logging
 import os
+import signal
 import subprocess
 import time
 import typing
+import warnings
 from collections import namedtuple
 from functools import partial
 
@@ -274,63 +277,105 @@ def chdir_tmpdir(request: pytest.FixtureRequest, tmp_path):
     os.chdir(request.config.invocation_dir)
 
 
-def wait_for_camouflage(popen, root_dir, host="localhost", port=8000, timeout=5):
-    ready = False
-    elapsed_time = 0.0
-    sleep_time = 0.1
+def wait_for_camouflage(host="localhost", port=8000, timeout=5):
+
+    start_time = time.time()
+    cur_time = start_time
+    end_time = start_time + timeout
+
     url = "http://{}:{}/ping".format(host, port)
-    while not ready and elapsed_time < timeout and popen.poll() is None:
+
+    while cur_time - start_time <= timeout:
+        timeout_epoch = min(cur_time + 1.0, end_time)
+
         try:
-            r = requests.get(url, timeout=1)
-            if r.status_code == 200:
-                ready = r.json()['message'] == 'I am alive.'
+            request_timeout = max(timeout_epoch - cur_time, 0.1)
+            r = requests.get(url, timeout=request_timeout)
+
+            if (r.status_code == 200):
+                if (r.json()['message'] == 'I am alive.'):
+                    return True
+                else:
+                    warnings.warn(
+                        "Camoflage returned status 200 but had incorrect response JSON. Continuing to wait. Response JSON:\n{}"
+                        .format(r.json()))
+
         except Exception:
             pass
 
-        if not ready:
-            time.sleep(sleep_time)
-            elapsed_time += sleep_time
+        # Sleep up to the end time or max 1 second
+        time.sleep(max(timeout_epoch - time.time(), 0.0))
 
-    if popen.poll() is not None:
-        raise RuntimeError("camouflage server exited with status code={} details in: {}".format(
-            popen.poll(), os.path.join(root_dir, 'camouflage.log')))
+        # Update current time
+        cur_time = time.time()
 
-    return ready
+    return False
 
 
-@pytest.fixture(scope="function")
-def launch_mock_triton():
+def _set_pdeathsig(sig=signal.SIGTERM):
     """
-    Launches a mock triton server using camouflage (https://testinggospels.github.io/camouflage/) with a package
-    rooted at `root_dir` and configured with `config`.
-
-    This function will wait for up to `timeout` seconds for camoflauge to startup
-
-    This function is a no-op if the `MORPHEUS_NO_LAUNCH_CAMOUFLAGE` environment variable is defined, which can
-    be useful during test development to run camouflage by hand.
+    Helper function to ensure once parent process exits, its childrent processes will automatically die
     """
+
+    def prctl_fn():
+        libc = ctypes.CDLL("libc.so.6")
+        return libc.prctl(1, sig)
+
+    return prctl_fn
+
+
+@pytest.fixture(scope="session")
+def _camouflage_is_running():
+    """
+    Responsible for actually starting and shutting down Camouflage. This has the scope of 'session' so we only
+    start/stop Camouflage once per testing session. Should not be used directly. Instead use `launch_mock_triton`
+
+    Yields
+    ------
+    bool
+        Whether or not we are using Camouflage or an actual Triton server
+    """
+
     from utils import TEST_DIRS
 
     root_dir = TEST_DIRS.mock_triton_servers_dir
     startup_timeout = 5
-    shutdown_timeout = 1
+    shutdown_timeout = 5
 
     launch_camouflage = os.environ.get('MORPHEUS_NO_LAUNCH_CAMOUFLAGE') is None
+    is_running = False
+
+    # First, check to see if camoflage is already open
+    if (launch_camouflage):
+        is_running = wait_for_camouflage(timeout=0.0)
+
+        if (is_running):
+            logging.warning("Camoflage already running. Skipping startup")
+            launch_camouflage = False
+            is_running = True
+
+    # Actually launch camoflague
     if launch_camouflage:
         popen = subprocess.Popen(["camouflage", "--config", "config.yml"],
                                  cwd=root_dir,
                                  stderr=subprocess.DEVNULL,
-                                 stdout=subprocess.DEVNULL)
+                                 stdout=subprocess.DEVNULL,
+                                 preexec_fn=_set_pdeathsig(signal.SIGTERM))
 
-        logging.info("Launching camouflage in {} with pid: {}".format(root_dir, popen.pid))
+        logging.info("Launched camouflage in %s with pid: %s", root_dir, popen.pid)
 
         if startup_timeout > 0:
-            if not wait_for_camouflage(popen, root_dir, timeout=startup_timeout):
+            if not wait_for_camouflage(timeout=startup_timeout):
+
+                if popen.poll() is not None:
+                    raise RuntimeError("camouflage server exited with status code={} details in: {}".format(
+                        popen.poll(), os.path.join(root_dir, 'camouflage.log')))
+
                 raise RuntimeError("Failed to launch camouflage server")
 
-        yield
+        yield is_running
 
-        logging.info("killing pid {}".format(popen.pid))
+        logging.info("Killing pid {}".format(popen.pid))
 
         elapsed_time = 0.0
         sleep_time = 0.1
@@ -345,4 +390,27 @@ def launch_mock_triton():
                 elapsed_time += sleep_time
 
     else:
-        yield
+
+        yield is_running
+
+
+@pytest.fixture(scope="function")
+def launch_mock_triton(_camouflage_is_running):
+    """
+    Launches a mock triton server using camouflage (https://testinggospels.github.io/camouflage/) with a package
+    rooted at `root_dir` and configured with `config`.
+
+    This function will wait for up to `timeout` seconds for camoflauge to startup
+
+    This function is a no-op if the `MORPHEUS_NO_LAUNCH_CAMOUFLAGE` environment variable is defined, which can
+    be useful during test development to run camouflage by hand.
+    """
+
+    # Check if we are using Camouflage or not. If so, send the reset command to reset the state
+    if _camouflage_is_running:
+        # Reset the mock server (necessary to set counters = 0)
+        r = requests.post("http://localhost:8000/reset", timeout=2.0)
+
+        assert r.ok, "Failed to reset Camouflage server state"
+
+    yield

@@ -295,6 +295,33 @@ class InputWrapper:
 
         return triton_input
 
+    def build_input_http(self, name: str, data: cp.ndarray, force_convert_inputs: bool) -> tritonclient_http.InferInput:
+        """
+        This helper function builds a Triton InferInput object that can be directly used by `tritonclient.async_infer`.
+        Utilizes the config option passed in the constructor to determine the shape/size/type.
+
+        Parameters
+        ----------
+        name : str
+            Inference input name.
+        data : cp.ndarray
+            Inference input data.
+        force_convert_inputs: bool
+            Whether or not to convert the inputs to the type specified by Triton. This will happen automatically if no
+            data would be lost in the conversion (i.e., float -> double). Set this to True to convert the input even if
+            data would be lost (i.e., double -> float).
+
+        """
+
+        triton_input = tritonclient_http.InferInput(name, list(data.shape), self._config[name].datatype)
+
+        data = self._convert_data(name, data, force_convert_inputs)
+
+        # Set the memory using numpy
+        triton_input.set_data_from_numpy(data.get())
+
+        return triton_input
+
 
 class ShmInputWrapper(InputWrapper):
     """
@@ -397,7 +424,12 @@ class _TritonInferenceWorker(InferenceWorker):
     use_shared_memory: bool, default = False
         Whether or not to use CUDA Shared IPC Memory for transferring data to Triton. Using CUDA IPC reduces network
         transfer time but requires that Morpheus and Triton are located on the same machine.
+    response_log_filename: str, default = None
+        Saves the responses from Triton into a CSV file to support debugging and mocking. Use `None` to disable this
+        feature. Requires the stage to be run in python mode.
     """
+
+    __REQUEST_COUNTER = AtomicInteger()
 
     def __init__(self,
                  inf_queue: ProducerConsumerQueue,
@@ -406,7 +438,8 @@ class _TritonInferenceWorker(InferenceWorker):
                  server_url: str,
                  force_convert_inputs: bool,
                  inout_mapping: typing.Dict[str, str] = None,
-                 use_shared_memory: bool = False):
+                 use_shared_memory: bool = False,
+                 response_log_filename: str = None):
         super().__init__(inf_queue)
 
         # Combine the class defaults with any user supplied ones
@@ -434,6 +467,22 @@ class _TritonInferenceWorker(InferenceWorker):
         self._triton_client: tritonclient.InferenceServerClient = None
         self._mem_pool: ResourcePool = None
 
+        self._response_log_filename = response_log_filename
+        self._response_log_dataframe: pd.DataFrame = None
+
+        # Create the log DataFrame if requested
+        if (self._response_log_filename is not None):
+
+            self._response_log_dataframe = pd.DataFrame({"output": []})
+
+        logger_grpc = logger.getChild("grpc")
+        logger_grpc.addHandler(logging.FileHandler("grpc_triton.log", mode="w"))
+        logger_grpc.propagate = False
+
+        logger_http = logger.getChild("http")
+        logger_http.addHandler(logging.FileHandler("http_triton.log", mode="w"))
+        logger_http.propagate = False
+
     @classmethod
     def supports_cpp_node(cls):
         # Enable support by default
@@ -454,6 +503,8 @@ class _TritonInferenceWorker(InferenceWorker):
         """
 
         self._triton_client = tritonclient.InferenceServerClient(url=self._server_url, verbose=False)
+        self._triton_client_http = tritonclient_http.InferenceServerClient(url=self._server_url[0:-1] + "0",
+                                                                           verbose=False)
 
         try:
             assert self._triton_client.is_server_live() and self._triton_client.is_server_ready(), \
@@ -562,6 +613,33 @@ class _TritonInferenceWorker(InferenceWorker):
         if (error is not None):
             raise error
 
+        request_id = int(result.get_response().id)
+
+        if (self._response_log_dataframe is not None):
+
+            assert request_id not in self._response_log_dataframe.index, "Duplicate request_id: {} detected".format(request_id)
+
+            # Save the response and update the CSV. Double serialize to encode new lines
+            self._response_log_dataframe.loc[int(result.get_response().id)] = json.dumps(
+                MessageToJson(result.get_response(), preserving_proto_field_name=True, indent=2))
+
+            # Sort by the index before writing
+            self._response_log_dataframe.sort_index(axis=1, inplace=True)
+
+            # Must write to the CSV each time since we dont know when we are done
+            self._response_log_dataframe.to_csv(self._response_log_filename,
+                                                sep=";",
+                                                index_label="id",
+                                                doublequote=False,
+                                                quotechar="'")
+
+        # Print the output
+        logger_grpc = logger.getChild("grpc")
+
+        if (logger_grpc.isEnabledFor(logging.DEBUG)):
+            logger_grpc.debug("Request ID: {}".format(request_id))
+            logger_grpc.debug(result.as_numpy("output"))
+
         # Build response
         response_mem = self._build_response(b, result)
 
@@ -584,6 +662,31 @@ class _TritonInferenceWorker(InferenceWorker):
         """
         mem: InputWrapper = self._mem_pool.borrow()
 
+        request_id = _TritonInferenceWorker.__REQUEST_COUNTER.get_and_inc()
+
+        logger_http = logger.getChild("http")
+
+        # See if we are interested in logging the http requests
+        if (logger_http.isEnabledFor(logging.DEBUG)):
+            inputs_http: typing.List[tritonclient_http.InferInput] = [
+                mem.build_input_http(input.name,
+                                     batch.get_input(input.mapped_name),
+                                     force_convert_inputs=self._force_convert_inputs)
+                for input in self._inputs.values()
+            ]
+
+            outputs_http = [tritonclient_http.InferRequestedOutput(output.name) for output in self._outputs.values()]
+
+            response_http = self._triton_client_http.infer(
+                model_name=self._model_name,
+                inputs=inputs_http,
+                request_id=str(request_id),
+                #  callback=partial(self._infer_callback, cb, mem, batch),
+                outputs=outputs_http)
+
+            logger_http.debug("Request ID: {}".format(request_id))
+            logger_http.debug(response_http.as_numpy("output"))
+
         inputs: typing.List[tritonclient.InferInput] = [
             mem.build_input(input.name,
                             batch.get_input(input.mapped_name),
@@ -594,6 +697,7 @@ class _TritonInferenceWorker(InferenceWorker):
 
         # Inference call
         self._triton_client.async_infer(model_name=self._model_name,
+                                        request_id=str(request_id),
                                         inputs=inputs,
                                         callback=partial(self._infer_callback, cb, mem, batch),
                                         outputs=outputs)
@@ -628,21 +732,8 @@ class TritonInferenceNLP(_TritonInferenceWorker):
 
     """
 
-    def __init__(self,
-                 inf_queue: ProducerConsumerQueue,
-                 c: Config,
-                 model_name: str,
-                 server_url: str,
-                 force_convert_inputs: bool = False,
-                 use_shared_memory: bool = False,
-                 inout_mapping: typing.Dict[str, str] = None):
-        super().__init__(inf_queue,
-                         c,
-                         model_name=model_name,
-                         server_url=server_url,
-                         force_convert_inputs=force_convert_inputs,
-                         use_shared_memory=use_shared_memory,
-                         inout_mapping=inout_mapping)
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
 
     @classmethod
     def needs_logits(cls):
@@ -700,21 +791,8 @@ class TritonInferenceFIL(_TritonInferenceWorker):
 
     """
 
-    def __init__(self,
-                 inf_queue: ProducerConsumerQueue,
-                 c: Config,
-                 model_name: str,
-                 server_url: str,
-                 force_convert_inputs: bool = False,
-                 use_shared_memory: bool = False,
-                 inout_mapping: typing.Dict[str, str] = None):
-        super().__init__(inf_queue,
-                         c,
-                         model_name=model_name,
-                         server_url=server_url,
-                         force_convert_inputs=force_convert_inputs,
-                         use_shared_memory=use_shared_memory,
-                         inout_mapping=inout_mapping)
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
 
     @classmethod
     def default_inout_mapping(cls) -> typing.Dict[str, str]:
@@ -767,21 +845,8 @@ class TritonInferenceAE(_TritonInferenceWorker):
 
     """
 
-    def __init__(self,
-                 inf_queue: ProducerConsumerQueue,
-                 c: Config,
-                 model_name: str,
-                 server_url: str,
-                 force_convert_inputs: bool = False,
-                 use_shared_memory: bool = False,
-                 inout_mapping: typing.Dict[str, str] = None):
-        super().__init__(inf_queue,
-                         c,
-                         model_name=model_name,
-                         server_url=server_url,
-                         force_convert_inputs=force_convert_inputs,
-                         use_shared_memory=use_shared_memory,
-                         inout_mapping=inout_mapping)
+    def __init__(self, inf_queue: ProducerConsumerQueue, c: Config, *args, **kwargs):
+        super().__init__(inf_queue=inf_queue, c=c, *args, **kwargs)
 
         import torch
         from dfencoder import AutoEncoder
@@ -852,6 +917,9 @@ class TritonInferenceStage(InferenceStage):
     use_shared_memory : bool, default = False, is_flag = True
         Whether or not to use CUDA Shared IPC Memory for transferring data to Triton. Using CUDA IPC reduces network
         transfer time but requires that Morpheus and Triton are located on the same machine.
+    response_log_filename: str, default = None
+        Saves the responses from Triton into a CSV file to support debugging and mocking. Use `None` to disable this
+        feature. Requires the stage to be run in python mode.
     """
 
     def __init__(self,
@@ -859,7 +927,8 @@ class TritonInferenceStage(InferenceStage):
                  model_name: str,
                  server_url: str,
                  force_convert_inputs: bool = False,
-                 use_shared_memory: bool = False):
+                 use_shared_memory: bool = False,
+                 response_log_filename: str = None):
         super().__init__(c)
 
         self._config = c
@@ -870,6 +939,12 @@ class TritonInferenceStage(InferenceStage):
             "force_convert_inputs": force_convert_inputs,
             "use_shared_memory": use_shared_memory,
         }
+
+        if (response_log_filename is not None):
+            if (self._build_cpp_node()):
+                logger.warning("Cannot set response_log_filename when using C++ stages")
+            else:
+                self._kwargs["response_log_filename"] = response_log_filename
 
         self._requires_seg_ids = False
 

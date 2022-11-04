@@ -1,0 +1,35 @@
+{
+	"name": "sid-minibert-onnx",
+	"versions": [
+		"1"
+	],
+	"platform": "onnxruntime_onnx",
+	"inputs": [
+		{
+			"name": "input_ids",
+			"datatype": "INT32",
+			"shape": [
+				-1,
+				256
+			]
+		},
+		{
+			"name": "attention_mask",
+			"datatype": "INT32",
+			"shape": [
+				-1,
+				256
+			]
+		}
+	],
+	"outputs": [
+		{
+			"name": "output",
+			"datatype": "FP32",
+			"shape": [
+				-1,
+				10
+			]
+		}
+	]
+}

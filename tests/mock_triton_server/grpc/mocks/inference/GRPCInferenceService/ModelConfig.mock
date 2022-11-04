@@ -1,0 +1,106 @@
+{
+	"config": {
+		"name": "sid-minibert-onnx",
+		"platform": "onnxruntime_onnx",
+		"backend": "onnxruntime",
+		"version_policy": {
+			"latest": {
+				"num_versions": 1
+			}
+		},
+		"max_batch_size": 32,
+		"input": [
+			{
+				"name": "input_ids",
+				"data_type": "TYPE_INT32",
+				"format": "FORMAT_NONE",
+				"dims": [
+					256
+				],
+				"is_shape_tensor": false,
+				"allow_ragged_batch": false,
+				"optional": false
+			},
+			{
+				"name": "attention_mask",
+				"data_type": "TYPE_INT32",
+				"format": "FORMAT_NONE",
+				"dims": [
+					256
+				],
+				"is_shape_tensor": false,
+				"allow_ragged_batch": false,
+				"optional": false
+			}
+		],
+		"output": [
+			{
+				"name": "output",
+				"data_type": "TYPE_FP32",
+				"dims": [
+					10
+				],
+				"label_filename": "",
+				"is_shape_tensor": false
+			}
+		],
+		"batch_input": [],
+		"batch_output": [],
+		"optimization": {
+			"priority": "PRIORITY_DEFAULT",
+			"execution_accelerators": {
+				"gpu_execution_accelerator": [
+					{
+						"name": "tensorrt",
+						"parameters": {
+							"max_workspace_size_bytes": "1073741824",
+							"precision_mode": "FP16"
+						}
+					}
+				],
+				"cpu_execution_accelerator": []
+			},
+			"input_pinned_memory": {
+				"enable": true
+			},
+			"output_pinned_memory": {
+				"enable": true
+			},
+			"gather_kernel_buffer_threshold": 0,
+			"eager_batching": false
+		},
+		"dynamic_batching": {
+			"preferred_batch_size": [
+				1,
+				4,
+				8,
+				16,
+				32
+			],
+			"max_queue_delay_microseconds": 50000,
+			"preserve_ordering": false,
+			"priority_levels": 0,
+			"default_priority_level": 0,
+			"priority_queue_policy": {}
+		},
+		"instance_group": [
+			{
+				"name": "sid-minibert-onnx",
+				"kind": "KIND_GPU",
+				"count": 1,
+				"gpus": [
+					0
+				],
+				"secondary_devices": [],
+				"profile": [],
+				"passive": false,
+				"host_policy": ""
+			}
+		],
+		"default_model_filename": "model.onnx",
+		"cc_model_filenames": {},
+		"metric_tags": {},
+		"parameters": {},
+		"model_warmup": []
+	}
+}

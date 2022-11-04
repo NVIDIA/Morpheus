@@ -1,0 +1,63 @@
+{{#inject}}
+(()=>{
+	if(!this.counter) {
+		this.counter=0;
+	}
+
+	console.log("Hit");
+	console.log(request);
+
+	const fs = require('fs');
+	const jsonpath = require('jsonpath');
+	const csv = require("convert-csv-to-json");
+
+	// console.log("Counter: " + this.counter);
+
+	// let body_obj = JSON.parse(request);
+
+	let model_name = jsonpath.query(request, "$.model_name")[0];
+	let request_id = jsonpath.query(request, "$.id")[0];
+
+	// console.log(request_id);
+
+	// this.counter+=1;
+	this.filename = "grpc/payloads/sid/sid_infer_resp." + 1 + ".body";
+	let csv_filename = `grpc/payloads/ModelInfer/${model_name}.csv`
+
+	let json_arr = csv.getJsonFromCsv(csv_filename);
+
+	// console.log(json_arr[0]);
+
+	let result = json_arr.find((jsonObj) => {
+		return jsonObj["id"] === request_id;
+	})
+
+	// let a = JSON.stringify({model_name: "sid-minibert-onnx", model_version: "With\nnew\nline"}, null, 2);
+
+	// let b = JSON.stringify(a);
+
+	// console.log(b);
+
+	// console.log(JSON.parse(b["output"]));
+	console.log(result["output"]);
+	// console.log(JSON.parse(result["output"]));
+
+	return JSON.parse(result["output"]);
+
+	let contents = fs.readFileSync(this.filename);
+
+	let body = JSON.parse(contents.toString());
+
+	let response = jsonpath.query(body, context.hash.selector);
+
+	let inf_header_content_length = 157;
+	if (this.counter === 63) {
+			inf_header_content_length = 156;
+	}
+
+	// This seems like the only way to pass a variable to the file helper
+	request._nv_morpheus_params = {counter: this.counter, filename: this.filename};
+
+	return "";
+})();
+{{/inject}}

@@ -27,7 +27,7 @@ protocols:
     mocks_dir: "./mocks"
     port: 8000
   grpc:
-    enable: false
+    enable: true
     host: localhost
     port: 8001
     mocks_dir: "./grpc/mocks"

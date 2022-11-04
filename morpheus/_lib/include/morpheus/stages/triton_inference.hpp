@@ -88,6 +88,8 @@ class InferenceClientStage
     std::vector<TritonInOut> m_model_outputs;
     triton::client::InferOptions m_options;
     int m_max_batch_size{-1};
+
+    static std::atomic<size_t> m_request_counter;
 };
 
 /****** InferenceClientStageInferenceProxy******************/

@@ -1,0 +1,20 @@
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{{#code}}
+(()=>{
+    if(!this.counter) {
+        this.counter=0;
+    }
+
+    logger.log(`Resetting counter from ${this.counter} to 0`);
+
+    // Just reset the counter value to 0
+    this.counter=0;
+
+    return {
+        status: 200,
+        body: `{}`
+    };
+})();
+{{/code}}
