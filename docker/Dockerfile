@@ -42,12 +42,14 @@ ARG TENSORRT_VERSION=8.2.1.3
 # Capture argument used for FROM
 ARG CUDA_VER
 
+USER "root"
+
 # Install dependencies to build
 RUN apt-get update &&\
     apt-get upgrade -y &&\
     curl -sL https://deb.nodesource.com/setup_16.x | bash - &&\
     apt-get install --no-install-recommends -y \
-        build-essential pkg-config curl unzip tar zip openssh-client bc jq nodejs git-lfs \
+        build-essential pkg-config curl unzip tar zip openssh-client bc jq nodejs git-lfs sudo \
     && rm -rf /var/lib/apt/lists/*
 
 # Enables "source activate conda"
@@ -55,7 +57,6 @@ SHELL ["/bin/bash", "-c"]
 
 # All code will be under /workspace
 ENV MORPHEUS_ROOT=/workspace
-WORKDIR ${MORPHEUS_ROOT}
 
 # Install mamba to speed the solve up
 RUN conda config --set ssl_verify false &&\
@@ -64,29 +65,52 @@ RUN conda config --set ssl_verify false &&\
     # Install mamba, boa and git here. Conda build breaks with other git installs
     /opt/conda/bin/conda install -y -n base -c conda-forge "mamba >=0.22" "boa >=0.10" "git >=2.35.3" "git-lfs" "python=${PYTHON_VER}" &&\
     source activate base &&\
-    git lfs install
-    # conda clean -afy
+    git lfs install &&\
+    # allow unknown UID (no HOME) to still run morpheus
+    mkdir -p -m 777 /.cache /.cupy &&\
+    # activate for any bash shell
+    echo -e "\nconda activate morpheus\n" >> /etc/skel/.bashrc &&\
+    # fix root .bashrc
+    sed -i 's/conda activate base/conda activate morpheus/g' ~/.bashrc &&\
+    # remedy for CVE-2015-20107 (as root)
+    find / -name '*mailcap*.*py*' | xargs rm
+
+ARG MORPHEUS_USER="root"
+ARG MORPHEUS_UID="0"
+
+# Conditionally create user and allow user to run sudo commands
+RUN if [ ! -z "${MORPHEUS_USER}" ] && [ "${MORPHEUS_USER}" != "root" ] ; then \
+    groupadd -g ${MORPHEUS_UID} ${MORPHEUS_USER} && \
+    useradd -d ${MORPHEUS_ROOT} -s /bin/bash -m ${MORPHEUS_USER} -u ${MORPHEUS_UID} -g ${MORPHEUS_UID} \
+      && usermod -aG sudo ${MORPHEUS_USER} \
+      && echo '%sudo ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers ; \
+    else \
+      echo "Skipping user creation..." ;\
+    fi
+
+USER ${MORPHEUS_USER}
+
+WORKDIR ${MORPHEUS_ROOT}
 
 # ============ Stage: conda_env ============
 # Create the conda environment and install all dependencies
 FROM base as conda_env
 
 # Create a base environment
-RUN --mount=type=cache,id=conda_pkgs,target=/opt/conda/pkgs,sharing=locked \
+RUN --mount=type=cache,id=conda_pkgs,target=/opt/conda/pkgs,sharing=locked,uid=${MORPHEUS_UID} \
     # Create the environment and install as little dependencies as possible
-    CONDA_ALWAYS_YES=true /opt/conda/bin/mamba create -n morpheus -c conda-forge python=${PYTHON_VER} &&\
+    CONDA_ALWAYS_YES=true /opt/conda/bin/mamba create -n morpheus -c conda-forge python=${PYTHON_VER}
     # Clean and activate
-    # conda clean -afy && \
-    sed -i 's/conda activate base/conda activate morpheus/g' ~/.bashrc
+    # conda clean -afy
 
-# Set the permenant conda channes to use for morpheus
+# Set the permenant conda channels to use for morpheus
 RUN source activate morpheus &&\
     conda config --env --add channels conda-forge &&\
     conda config --env --add channels nvidia &&\
     conda config --env --add channels rapidsai
 
 # Set the entrypoint to use the entrypoint.sh script which sets the conda env
-COPY docker/entrypoint.sh ./docker/
+COPY --chown=${MORPHEUS_USER} docker/entrypoint.sh ./docker/
 ENTRYPOINT [ "/opt/conda/bin/tini", "--", "/workspace/docker/entrypoint.sh" ]
 
 # Reset the shell back to normal
@@ -99,11 +123,11 @@ FROM conda_env as conda_env_dev
 ARG CONDA_CHANNEL_ALIAS
 
 # Copy the development dependencies file
-COPY docker/conda/environments/cuda${CUDA_VER}_dev.yml ./docker/conda/environments/
-COPY docker/conda/environments/requirements.txt ./docker/conda/environments/
+COPY --chown=${MORPHEUS_USER} docker/conda/environments/cuda${CUDA_VER}_dev.yml ./docker/conda/environments/
+COPY --chown=${MORPHEUS_USER} docker/conda/environments/requirements.txt ./docker/conda/environments/
 
 # Update the morpheus environment
-RUN --mount=type=cache,id=conda_pkgs,target=/opt/conda/pkgs,sharing=locked \
+RUN --mount=type=cache,id=conda_pkgs,target=/opt/conda/pkgs,sharing=locked,uid=${MORPHEUS_UID} \
     # Temp add channel_alias to get around conda 404 errors
     conda config --env --set channel_alias ${CONDA_CHANNEL_ALIAS:-"https://conda.anaconda.org"} &&\
     /opt/conda/bin/mamba env update -n morpheus --file docker/conda/environments/cuda${CUDA_VER}_dev.yml &&\
@@ -121,23 +145,23 @@ ARG CONDA_CHANNEL_ALIAS
 # Copy the source
 COPY . ./
 
-RUN --mount=type=cache,id=workspace_cache,target=/workspace/.cache,sharing=locked \
-    --mount=type=cache,id=conda_pkgs,target=/opt/conda/pkgs,sharing=locked \
+RUN --mount=type=cache,id=workspace_cache,target=${MORPHEUS_ROOT}.cache,sharing=locked,uid=${MORPHEUS_UID} \
+    --mount=type=cache,id=conda_pkgs,target=/opt/conda/pkgs,sharing=locked,uid=${MORPHEUS_UID} \
     source activate base &&\
     # Need to get around recent versions of git locking paths until they are deemed safe
     git config --global --add safe.directory "*" &&\
     MORPHEUS_BUILD_PYTHON_STUBS=OFF CONDA_BLD_PATH=/opt/conda/conda-bld CONDA_ARGS="--no-test" ./ci/conda/recipes/run_conda_build.sh morpheus
 
 # sid_visualization is a submodule we need to init
-RUN git submodule update --init --recursive
+RUN sudo git submodule update --init --recursive
 
 # ============ Stage: runtime ============
 # Setup container for runtime environment
 FROM conda_env as runtime
 
 # Manually need to install some pip-only dependencies. Once these can get moved to conda, they can be removed.
-COPY docker/conda/environments/requirements.txt ./docker/conda/environments/
-COPY docker/conda/environments/cuda${CUDA_VER}_runtime.yml ./docker/conda/environments/
+COPY --chown=${MORPHEUS_USER} docker/conda/environments/requirements.txt ./docker/conda/environments/
+COPY --chown=${MORPHEUS_USER} docker/conda/environments/cuda${CUDA_VER}_runtime.yml ./docker/conda/environments/
 
 RUN --mount=type=bind,from=conda_bld_morpheus,source=/opt/conda/conda-bld,target=/opt/conda/conda-bld \
     --mount=type=cache,id=conda_pkgs,target=/opt/conda/pkgs,sharing=locked \
@@ -147,18 +171,19 @@ RUN --mount=type=bind,from=conda_bld_morpheus,source=/opt/conda/conda-bld,target
     # Install runtime dependencies that are pip-only
     /opt/conda/bin/mamba env update -n morpheus --file docker/conda/environments/cuda${CUDA_VER}_runtime.yml &&\
     # Clean and activate
-    conda clean -afy
+    conda clean -afy &&\
+    # remedy for CVE-2015-20107 (as MORPHEUS_USER)
+    find /opt/conda/envs/morpheus -name '*mailcap*.*py*' | xargs rm
 
 # Only copy specific files/folders over that are necessary for runtime
-COPY "./docker" "./docker"
-COPY "./docs" "./docs"
-COPY "./examples" "./examples"
-COPY "./models" "./models"
-COPY "./scripts" "./scripts"
-COPY ["*.md", "LICENSE", "./"]
+COPY --chown=${MORPHEUS_USER} "./docker" "./docker"
+COPY --chown=${MORPHEUS_USER} "./docs" "./docs"
+COPY --chown=${MORPHEUS_USER} "./examples" "./examples"
+COPY --chown=${MORPHEUS_USER} "./models" "./models"
+COPY --chown=${MORPHEUS_USER} "./scripts" "./scripts"
+COPY --chown=${MORPHEUS_USER} ["*.md", "LICENSE", "./"]
 
-# remedy for CVE-2015-20107
-RUN find / -name '*mailcap*.*py*' | xargs rm
+RUN echo "NOTE: this image user is $(id)"
 
 # Use morpheus by default
 CMD [ "morpheus" ]
@@ -172,7 +197,7 @@ FROM conda_env_dev as development
 # Install camouflage needed for unittests to mock a triton server
 RUN npm install -g camouflage-server@0.9
 
-# Setup git to allow other users to access /workspace. Requires git 2.35.3 or
+# Setup git to allow other users to access MORPHEUS_ROOT. Requires git 2.35.3 or
 # greater. See https://marc.info/?l=git&m=164989570902912&w=2. Only enable for
 # development
 RUN git config --global --add safe.directory "*"
@@ -185,12 +210,9 @@ COPY ci/conda/recipes/python-dbg/ ./ci/conda/recipes/python-dbg
 COPY ci/conda/recipes/run_conda_build.sh ./ci/conda/recipes/run_conda_build.sh
 COPY ci/conda/recipes/python_dbg_install.sh ./ci/conda/recipes/python_dbg_install.sh
 
-# Temporary until #68 goes in
-ARG MORPHEUS_USER="root"
-
 # Build and install debug cpython
 RUN source activate morpheus \
-    && MORPHEUS_ROOT=/workspace \
+    && MORPHEUS_ROOT=${MORPHEUS_ROOT} \
        CONDA_BLD_PATH=/opt/conda/conda-bld \
        CONDA_ARGS="--no-test" \
        ./ci/conda/recipes/run_conda_build.sh pydebug \
