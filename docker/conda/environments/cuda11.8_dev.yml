@@ -26,6 +26,7 @@ dependencies:
     - automake=1.16.5
     - benchmark=1.6.1
     - boost-cpp=1.74
+    - boto3
     - cachetools=5.0.0
     - ccache>=3.7
     - clangdev=14
@@ -92,6 +93,7 @@ dependencies:
     - pytorch=2.0.1
     - rapidjson=1.1.0
     - requests=2.31
+    - s3fs>=2023.6
     - scikit-build=0.17.1
     - scikit-learn=1.2.2
     - sphinx

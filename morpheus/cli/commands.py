@@ -650,6 +650,7 @@ add_command("buffer", "morpheus.stages.general.buffer_stage.BufferStage", modes=
 add_command("delay", "morpheus.stages.general.delay_stage.DelayStage", modes=ALL)
 add_command("deserialize", "morpheus.stages.preprocess.deserialize_stage.DeserializeStage", modes=NOT_AE)
 add_command("dropna", "morpheus.stages.preprocess.drop_null_stage.DropNullStage", modes=NOT_AE)
+add_command("file-source", "morpheus.stages.input.file_source.FileSource", modes=NOT_AE)
 add_command("filter", "morpheus.stages.postprocess.filter_detections_stage.FilterDetectionsStage", modes=ALL)
 add_command("from-azure", "morpheus.stages.input.azure_source_stage.AzureSourceStage", modes=AE_ONLY)
 add_command("from-appshield", "morpheus.stages.input.appshield_source_stage.AppShieldSourceStage", modes=FIL_ONLY)
