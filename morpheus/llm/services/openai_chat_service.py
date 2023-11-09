@@ -206,7 +206,7 @@ class OpenAIChatService(LLMService):
             The name of the model to create a client for.
 
         set_assistant: bool, optional default=False
-            When `True`, a second input field named `assistant` will be used to proide additional context to the model.
+            When `True`, a second input field named `assistant` will be used to provide additional context to the model.
 
         model_kwargs : dict[str, typing.Any]
             Additional keyword arguments to pass to the model when generating text.

@@ -30,7 +30,7 @@ class ExtracterNode(LLMNodeBase):
     """
 
     def get_input_names(self) -> list[str]:
-        # This node does not receive it's inputs from upstream nodes, but rather from the task itself
+        # This node does not receive its inputs from upstream nodes, but rather from the task itself
         return []
 
     async def execute(self, context: LLMContext) -> LLMContext:

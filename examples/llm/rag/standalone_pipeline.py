@@ -37,7 +37,7 @@ from ..common.utils import build_milvus_service
 logger = logging.getLogger(__name__)
 
 
-def _build_engine(model_name: str, vdb_resource_name: str):
+def _build_engine(model_name: str, model_type: str, vdb_resource_name: str):
 
     engine = LLMEngine()
 
@@ -56,7 +56,7 @@ Please answer the following question: \n{{ query }}"""
     embeddings = build_huggingface_embeddings("sentence-transformers/all-MiniLM-L6-v2",
                                               model_kwargs={'device': 'cuda'},
                                               encode_kwargs={'batch_size': 100})
-    llm_service = build_llm_service(model_name, 'nemo', temperature=0.5, tokens_to_generate=200)
+    llm_service = build_llm_service(model_name, model_type=model_type, temperature=0.5, tokens_to_generate=200)
 
     # Async wrapper around embeddings
     async def calc_embeddings(texts: list[str]) -> list[list[float]]:
@@ -75,49 +75,61 @@ Please answer the following question: \n{{ query }}"""
 
 
 def standalone(
-    num_threads,
-    pipeline_batch_size,
-    model_max_batch_size,
-    model_name,
-    vdb_resource_name,
-    repeat_count,
+        num_threads,
+        pipeline_batch_size,
+        model_max_batch_size,
+        model_name,
+        model_type,
+        vdb_resource_name,
+        repeat_count,
 ):
+    # Configuration setup for the pipeline
     config = Config()
-    config.mode = PipelineModes.OTHER
+    config.mode = PipelineModes.OTHER  # Initial mode set to OTHER, will be overridden below
 
-    # Below properties are specified by the command line
     config.num_threads = num_threads
     config.pipeline_batch_size = pipeline_batch_size
     config.model_max_batch_size = model_max_batch_size
     config.mode = PipelineModes.NLP
-    config.edge_buffer_size = 128
+    config.edge_buffer_size = 128  # Set edge buffer size for the pipeline stages
 
+    # Create a DataFrame as the data source for the pipeline
     source_dfs = [
         cudf.DataFrame({"questions": ["What are some new attacks discovered in the cyber security industry?."] * 5})
     ]
 
+    # Define a task to be used by the pipeline stages
     completion_task = {"task_type": "completion", "task_dict": {"input_keys": ["questions"], }}
 
+    # Initialize the pipeline with the configuration
     pipe = LinearPipeline(config)
 
+    # Set the source stage of the pipeline with the DataFrame and repeat count
     pipe.set_source(InMemorySourceStage(config, dataframes=source_dfs, repeat=repeat_count))
 
+    # Add deserialization stage to convert messages for processing
     pipe.add_stage(
         DeserializeStage(config, message_type=ControlMessage, task_type="llm_engine", task_payload=completion_task))
 
+    # Add a monitoring stage to observe the source data rate
     pipe.add_stage(MonitorStage(config, description="Source rate", unit='questions'))
 
+    # Add the main LLM engine stage to the pipeline with the model and vector database
     pipe.add_stage(
-        LLMEngineStage(config, engine=_build_engine(model_name=model_name, vdb_resource_name=vdb_resource_name)))
+        LLMEngineStage(config, engine=_build_engine(model_name=model_name, model_type=model_type, vdb_resource_name=vdb_resource_name)))
 
+    # Add a sink stage to collect the output from the pipeline
     sink = pipe.add_stage(InMemorySinkStage(config))
 
+    # Add another monitoring stage to observe the response rate with a delayed start
     pipe.add_stage(MonitorStage(config, description="Response rate", unit="responses", delayed_start=True))
 
     start_time = time.time()
 
     pipe.run()
 
+    # Log the total number of responses received after pipeline completion
     logger.info("Pipeline complete. Received %s responses", len(sink.get_messages()))
 
+    # Return the start time for performance measurement or further processing
     return start_time

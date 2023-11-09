@@ -214,14 +214,14 @@ pipeline option of `rag`:
 
 ```bash
 export NGC_API_KEY=[YOUR_KEY_HERE]
-NGC_API_KEY=${NGC_API_KEY} python examples/llm/main.py rag pipeline
+python examples/llm/main.py rag persistent --model_name gpt-43b-002 --model_type NemoLLM
 ```
 
 **Using OpenAI LLM models**
 
 ```bash
 export OPENAI_API_KEY=[YOUR_KEY_HERE]
-OPENAI_API_KEY=${OPENAI_API_KEY} python examples/llm/main.py rag pipeline
+python examples/llm/main.py rag persistent --model_name gpt-3.5-turbo --model_type OpenAI
 ```
 
 ### Run example (Persistent Pipeline):
@@ -232,14 +232,14 @@ OPENAI_API_KEY=${OPENAI_API_KEY} python examples/llm/main.py rag pipeline
 
 ```bash
 export NGC_API_KEY=[YOUR_KEY_HERE]
-python examples/llm/main.py rag persistent 
+python examples/llm/main.py rag persistent --model_name gpt-43b-002 --model_type NemoLLM
 ```
 
 **Using OpenAI LLM models**
 
 ```bash
 export OPENAI_API_KEY=[YOUR_KEY_HERE]
-python examples/llm/main.py rag persistent 
+python examples/llm/main.py rag persistent --model_name gpt-3.5-turbo --model_type OpenAI
 ```
 
 ### Options:

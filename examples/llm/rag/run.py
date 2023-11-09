@@ -45,11 +45,18 @@ def run():
     help="Max batch size to use for the model",
 )
 @click.option(
+    "--model_type",
+    type=click.Choice(['OpenAI', 'NemoLLM'], case_sensitive=False),
+    default='NemoLLM',
+    help="Type of the large language model to use",
+)
+@click.option(
     "--model_name",
-    required=True,
     type=str,
-    default='gpt-43b-002',
-    help="The name of the large language model that is deployed on Triton server",
+    default=None,  # Set default to None to detect if the user provided a value
+    help="The name of the model that is deployed on Triton server",
+    callback=lambda ctx, param, value: (value if value is not None else
+    ('gpt-3.5-turbo' if ctx.params['model_type'].lower() == 'openai' else 'gpt-43b-002'))
 )
 @click.option(
     "--vdb_resource_name",
@@ -65,7 +72,6 @@ def run():
     help="Number of times to repeat the input query. Useful for testing performance.",
 )
 def pipeline(**kwargs):
-
     from .standalone_pipeline import standalone
 
     return standalone(**kwargs)
@@ -98,14 +104,21 @@ def pipeline(**kwargs):
     help="The output size of the embedding calculation. Depends on the model supplied by --model_name",
 )
 @click.option(
-    "--model_name",
-    required=True,
-    type=str,
-    default='gpt-43b-002',
-    help="The name of the model that is deployed on Triton server",
+    "--model_type",
+    type=click.Choice(['OpenAI', 'NemoLLM'], case_sensitive=False),
+    default='NemoLLM',
+    help="Type of the large language model to use",
 )
-def persistant(**kwargs):
-
+@click.option(
+    "--model_name",
+    type=str,
+    show_default=True,
+    default=None,  # Set default to None, it will be dynamically determined by the callback
+    help="The name of the model that is deployed on Triton server",
+    callback=lambda ctx, param, value: (value if value is not None else
+    ('gpt-3.5-turbo' if ctx.params['model_type'].lower() == 'openai' else 'gpt-43b-002'))
+)
+def persistent(**kwargs):
     from .persistant_pipeline import pipeline as _pipeline
 
     return _pipeline(**kwargs)
