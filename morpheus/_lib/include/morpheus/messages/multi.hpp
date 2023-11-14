@@ -384,6 +384,10 @@ struct MultiMessageInterfaceProxy
     static std::shared_ptr<MultiMessage> copy_ranges(MultiMessage& self,
                                                      const std::vector<RangeType>& ranges,
                                                      pybind11::object num_selected_rows);
+
+    static pybind11::dict pickle_dump(const MultiMessage& message);
+
+    static MultiMessage pickle_load(pybind11::dict pickle);
 };
 
 #pragma GCC visibility pop

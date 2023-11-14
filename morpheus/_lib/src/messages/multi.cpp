@@ -463,4 +463,23 @@ std::shared_ptr<MultiMessage> MultiMessageInterfaceProxy::copy_ranges(MultiMessa
 
     return self.copy_ranges(ranges, num_rows);
 }
+
+pybind11::dict MultiMessageInterfaceProxy::pickle_dump(const MultiMessage& message)
+{
+    auto pickle           = pybind11::dict();
+    pickle["meta"]        = MessageMetaInterfaceProxy::pickle_dump(*message.meta);
+    pickle["mess_offset"] = message.mess_offset;
+    pickle["mess_count"]  = message.mess_count;
+    return pickle;
+}
+
+MultiMessage MultiMessageInterfaceProxy::pickle_load(pybind11::dict pickle)
+{
+    auto mess_count  = pickle["mess_count"].cast<TensorIndex>();
+    auto mess_offset = pickle["mess_offset"].cast<TensorIndex>();
+    auto meta        = MessageMetaInterfaceProxy::pickle_load(pickle["meta"]);
+    auto meta_shared = std::make_shared<MessageMeta>(std::move(meta));
+    return {std::move(meta_shared), mess_offset, mess_count};
+}
+
 }  // namespace morpheus

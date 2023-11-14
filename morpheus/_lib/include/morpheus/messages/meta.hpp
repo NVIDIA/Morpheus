@@ -104,9 +104,11 @@ class MessageMeta
     static std::shared_ptr<MessageMeta> create_from_cpp(cudf::io::table_with_metadata&& data_table,
                                                         int index_col_count = 0);
 
-  protected:
+    std::shared_ptr<IDataTable> m_data;
+
     MessageMeta(std::shared_ptr<IDataTable> data);
 
+  protected:
     /**
      * @brief Create MessageMeta python object from a cpp object
      *
@@ -115,8 +117,6 @@ class MessageMeta
      * @return pybind11::object
      */
     static pybind11::object cpp_to_py(cudf::io::table_with_metadata&& table, int index_col_count = 0);
-
-    std::shared_ptr<IDataTable> m_data;
 };
 
 /**
@@ -204,6 +204,10 @@ struct MessageMetaInterfaceProxy
      * @return std::string The name of the column with the old index or nullopt if no changes were made.
      */
     static std::optional<std::string> ensure_sliceable_index(MessageMeta& self);
+
+    static pybind11::dict pickle_dump(const MessageMeta& meta);
+
+    static MessageMeta pickle_load(pybind11::dict pickle);
 };
 
 #pragma GCC visibility pop

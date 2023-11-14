@@ -207,6 +207,20 @@ std::optional<std::string> MessageMetaInterfaceProxy::ensure_sliceable_index(Mes
     return self.ensure_sliceable_index();
 }
 
+pybind11::dict MessageMetaInterfaceProxy::pickle_dump(const MessageMeta& meta)
+{
+    auto pickle   = pybind11::dict();
+    pickle["obj"] = meta.m_data->get_py_object();
+    return pickle;
+}
+
+MessageMeta MessageMetaInterfaceProxy::pickle_load(pybind11::dict pickle)
+{
+    auto obj   = pickle["obj"].cast<py::object>();
+    auto table = std::make_shared<PyDataTable>(std::move(obj));
+    return {std::move(table)};
+}
+
 SlicedMessageMeta::SlicedMessageMeta(std::shared_ptr<MessageMeta> other,
                                      TensorIndex start,
                                      TensorIndex stop,

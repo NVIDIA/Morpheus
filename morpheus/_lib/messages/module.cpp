@@ -266,7 +266,8 @@ PYBIND11_MODULE(messages, _module)
              py::arg("ranges"),
              py::arg("num_selected_rows") = py::none(),
              py::return_value_policy::move)
-        .def("get_meta_list", &MultiMessageInterfaceProxy::get_meta_list, py::return_value_policy::move);
+        .def("get_meta_list", &MultiMessageInterfaceProxy::get_meta_list, py::return_value_policy::move)
+        .def(py::pickle(&MultiMessageInterfaceProxy::pickle_dump, &MultiMessageInterfaceProxy::pickle_load));
 
     py::class_<MultiTensorMessage, MultiMessage, std::shared_ptr<MultiTensorMessage>>(_module, "MultiTensorMessage")
         .def(py::init<>(&MultiTensorMessageInterfaceProxy::init),
