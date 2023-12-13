@@ -112,6 +112,12 @@ add_morpheus_test(
 )
 
 add_morpheus_test(
+  NAME llm_batcher
+  FILES
+    test_llm_client_batcher.cpp
+)
+
+add_morpheus_test(
   NAME messages
   FILES
     messages/test_control_message.cpp
