@@ -18,7 +18,6 @@ channels:
   - defaults
 dependencies:
   - arxiv=1.4
-  - langchain=0.0.190
   - pip
   - pypdf=3.16
   - newspaper3k=0.2
@@ -36,3 +35,4 @@ dependencies:
   - pip:
     - grpcio-status==1.58 # To keep in sync with 1.58 grpcio which is installed for Morpheus
     - pymilvus # The conda package is woefully out of date and incorrect
+    - langchain==0.0.351

@@ -28,10 +28,40 @@ def mock_llm_client_fixture():
     return mock_client
 
 
-@pytest.fixture(name="mock_agent_executor")
-def mock_agent_executor_fixture():
+@pytest.fixture(name="mock_langchain_agent_executor")
+def mock_langchain_agent_executor_fixture():
     mock_agent_ex = mock.MagicMock()
     mock_agent_ex.return_value = mock_agent_ex
     mock_agent_ex.input_keys = ["prompt"]
     mock_agent_ex.arun = mock.AsyncMock()
     return mock_agent_ex
+
+
+@pytest.fixture(name="mock_haystack_agent")
+def mock_haystack_agent_fixture():
+    mock_agent = mock.MagicMock()
+    mock_agent.return_value = mock_agent
+    mock_agent.run = mock.Mock()
+    return mock_agent
+
+
+@pytest.fixture(name="mock_haystack_answer_data", scope="module")
+def mock_haystack_answer_data_fixture() -> dict:
+    return {
+        'answer': '4.95',
+        'type': 'generative',
+        'score': None,
+        'context': None,
+        'offsets_in_document': None,
+        'offsets_in_context': None,
+        'document_ids': None,
+        'meta': {}
+    }
+
+
+@pytest.fixture(name="mock_haystack_agent_run_return", scope="module")
+def mock_haystack_agent_run_return_fixture(mock_haystack_answer_data: mock.MagicMock) -> dict:
+    from haystack.schema import Answer
+
+    answer = Answer(**mock_haystack_answer_data)
+    return {'query': {'query': 'test query'}, 'answers': [answer], 'transcript': 'query transcript'}

@@ -22,13 +22,13 @@ from morpheus.llm import LLMNodeBase
 from morpheus.llm.nodes.langchain_agent_node import LangChainAgentNode
 
 
-def test_constructor(mock_agent_executor: mock.MagicMock):
-    node = LangChainAgentNode(agent_executor=mock_agent_executor)
+def test_constructor(mock_langchain_agent_executor: mock.MagicMock):
+    node = LangChainAgentNode(agent_executor=mock_langchain_agent_executor)
     assert isinstance(node, LLMNodeBase)
 
 
-def test_get_input_names(mock_agent_executor: mock.MagicMock):
-    node = LangChainAgentNode(agent_executor=mock_agent_executor)
+def test_get_input_names(mock_langchain_agent_executor: mock.MagicMock):
+    node = LangChainAgentNode(agent_executor=mock_langchain_agent_executor)
     assert node.get_input_names() == ["prompt"]
 
 
@@ -44,14 +44,14 @@ def test_get_input_names(mock_agent_executor: mock.MagicMock):
       [mock.call(a='b', c='d', e='f'), mock.call(a='c', c='e', e='g'), mock.call(a='d', c='f', e='h')])],
     ids=["not-lists", "all-lists"])
 def test_execute(
-    mock_agent_executor: mock.MagicMock,
+    mock_langchain_agent_executor: mock.MagicMock,
     values: dict,
     arun_return: list,
     expected_output: list,
     expected_calls: list[mock.call],
 ):
-    mock_agent_executor.arun.return_value = arun_return
+    mock_langchain_agent_executor.arun.return_value = arun_return
 
-    node = LangChainAgentNode(agent_executor=mock_agent_executor)
+    node = LangChainAgentNode(agent_executor=mock_langchain_agent_executor)
     assert execute_node(node, **values) == expected_output
-    mock_agent_executor.arun.assert_has_calls(expected_calls)
+    mock_langchain_agent_executor.arun.assert_has_calls(expected_calls)

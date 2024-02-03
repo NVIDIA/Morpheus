@@ -57,6 +57,12 @@ def run():
     type=click.IntRange(min=1),
     help="Number of times to repeat the input query. Useful for testing performance.",
 )
+@click.option(
+    "--llm_orch",
+    default="langchain",
+    type=click.Choice(["haystack", "langchain", "llama_index"], case_sensitive=False),
+    help="LLM orchestration frameworks, that you can use to include in the pipeline.",
+)
 def simple(**kwargs):
 
     from .simple_pipeline import pipeline as _pipeline
@@ -90,6 +96,12 @@ def simple(**kwargs):
     type=str,
     default='gpt-3.5-turbo-instruct',
     help="The name of the model to use in OpenAI",
+)
+@click.option(
+    "--llm_orch",
+    default="langchain",
+    type=click.Choice(["haystack", "langchain"], case_sensitive=False),
+    help="LLM orchestration frameworks, that you can use to include in the pipeline.",
 )
 def kafka(**kwargs):
 

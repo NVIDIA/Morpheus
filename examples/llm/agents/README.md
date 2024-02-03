@@ -51,7 +51,7 @@ The pipeline supports different agent types, each influencing the pattern for in
 Depending on the problem at hand, various tools can be provided to LLM agents, such as internet searches, VDB retrievers, calculators, Wikipedia, etc. In this example, we'll use the internet search tool and an llm-math tool, allowing the LLM agent to perform Google searches and solve math equations.
 
 ### LLM Library
-The pipeline utilizes the Langchain library to run LLM agents, enabling their execution directly within a Morpheus pipeline. This approach reduces the overhead of migrating existing systems to Morpheus and eliminates the need to replicate work done by popular LLM libraries like llama-index and Haystack.
+The pipeline utilizes the Langchain, Haystack library to run LLM agents, enabling their execution directly within a Morpheus pipeline. This approach reduces the overhead of migrating existing systems to Morpheus and eliminates the need to replicate work done by popular LLM libraries like llama-index and Haystack.
 
 ## Pipeline Implementation
 - **InMemorySourceStage**: Manages LLM queries in a DataFrame.
@@ -90,6 +90,17 @@ SerpApi API key. Set the API key as an environment variable using the following 
 export SERPAPI_API_KEY="<YOUR_SERPAPI_API_KEY>"
 ```
 
+**Serper Dev API Key**
+
+Go to [SerperDev](https://serper.dev/login) to register and create an account. Once registered, obtain your
+Serper Dev API key. Set the API key as an environment variable using the following command:
+
+```bash
+export SERPERDEV_API_KEY="<SERPER_API_KEY>"
+```
+
+Note: This is required when using the Haystack LLM orchestration framework in the pipeline.
+
 #### Install Dependencies
 
 Install the required dependencies.
@@ -120,7 +131,7 @@ This example demonstrates the basic implementation of Morpheus pipeline, showcas
 
 
 ```bash
-python exmaples/llm/main.py agents simple [OPTIONS]
+python examples/llm/main.py agents simple [OPTIONS]
 ```
 
 ### Options:
@@ -144,6 +155,12 @@ python exmaples/llm/main.py agents simple [OPTIONS]
 - `--repeat_count INTEGER RANGE`
     - **Description**: Number of times to repeat the input query. Useful for testing performance.
     - **Default**: `1`
+
+- `--llm_orch TEXT`
+    - **Chioce**: `[haystack|langchain|llama_index]`
+    - **Description**: The name of the model to use in OpenAI.
+    - **Default**: `langchain`
+
 - `--help`
     - **Description**: Show the help message with options and commands details.
 
@@ -172,7 +189,7 @@ kafka-topics.sh --bootstrap-server ${BOOTSTRAP_SERVER} --alter --topic input --p
 Now Kafka example can be run using the following command with the below listed options:
 
 ```bash
-python exmaples/llm/main.py agents kafka [OPTIONS]
+python examples/llm/main.py agents kafka [OPTIONS]
 ```
 
 ### Options:
@@ -192,6 +209,11 @@ python exmaples/llm/main.py agents kafka [OPTIONS]
 - `--model_name TEXT`
     - **Description**: The name of the model to use in OpenAI.
     - **Default**: `gpt-3.5-turbo-instruct`
+
+- `--llm_orch TEXT`
+    - **Chioce**: `[haystack|langchain]`
+    - **Description**: The name of the model to use in OpenAI.
+    - **Default**: `langchain`
 
 - `--help`
     - **Description**: Show the help message with options and commands details.

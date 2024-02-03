@@ -19,7 +19,7 @@ channels:
   - defaults
 dependencies:
   - pip
-  - openai=0.28
+  - openai=1.6.0
 
   ####### Pip Transitive Dependencies (keep sorted!) #######
   # These are dependencies that are available on conda, but are required by the pip packages listed below. Its much
@@ -33,4 +33,4 @@ dependencies:
   - pip:
     - google-search-results==2.4
     - grpcio-status==1.58 # To keep in sync with 1.58 grpcio which is installed for Morpheus
-    - langchain==0.0.310
+    - langchain==0.0.351

@@ -15,20 +15,10 @@
 import logging
 import time
 
-from langchain import OpenAI
-from langchain.agents import AgentType
-from langchain.agents import initialize_agent
-from langchain.agents import load_tools
-from langchain.agents.agent import AgentExecutor
-
 import cudf
 
 from morpheus.config import Config
 from morpheus.config import PipelineModes
-from morpheus.llm import LLMEngine
-from morpheus.llm.nodes.extracter_node import ExtracterNode
-from morpheus.llm.nodes.langchain_agent_node import LangChainAgentNode
-from morpheus.llm.task_handlers.simple_task_handler import SimpleTaskHandler
 from morpheus.messages import ControlMessage
 from morpheus.pipeline.linear_pipeline import LinearPipeline
 from morpheus.stages.general.monitor_stage import MonitorStage
@@ -38,42 +28,17 @@ from morpheus.stages.output.in_memory_sink_stage import InMemorySinkStage
 from morpheus.stages.preprocess.deserialize_stage import DeserializeStage
 from morpheus.utils.concat_df import concat_dataframes
 
+from ..common.engine_builder import build_engine_with_agent_node
+
 logger = logging.getLogger(__name__)
 
 
-def _build_agent_executor(model_name: str) -> AgentExecutor:
-
-    llm = OpenAI(model=model_name, temperature=0)
-
-    tools = load_tools(["serpapi", "llm-math"], llm=llm)
-
-    agent_executor = initialize_agent(tools, llm, agent=AgentType.ZERO_SHOT_REACT_DESCRIPTION, verbose=True)
-
-    return agent_executor
-
-
-def _build_engine(model_name: str) -> LLMEngine:
-
-    engine = LLMEngine()
-
-    engine.add_node("extracter", node=ExtracterNode())
-
-    engine.add_node("agent",
-                    inputs=[("/extracter")],
-                    node=LangChainAgentNode(agent_executor=_build_agent_executor(model_name=model_name)))
-
-    engine.add_task_handler(inputs=["/agent"], handler=SimpleTaskHandler())
-
-    return engine
-
-
-def pipeline(
-    num_threads: int,
-    pipeline_batch_size,
-    model_max_batch_size,
-    model_name,
-    repeat_count,
-) -> float:
+def pipeline(num_threads: int,
+             pipeline_batch_size: int,
+             model_max_batch_size: int,
+             model_name: str,
+             repeat_count: int,
+             llm_orch: str) -> float:
     config = Config()
     config.mode = PipelineModes.OTHER
 
@@ -85,8 +50,12 @@ def pipeline(
     config.edge_buffer_size = 128
 
     source_dfs = [
-        cudf.DataFrame(
-            {"questions": ["Who is Leo DiCaprio's girlfriend? What is her current age raised to the 0.43 power?"]})
+        cudf.DataFrame({
+            "questions": [
+                "Who is Leo DiCaprio's girlfriend? What is her current age raised to the 0.43 power?",
+                "Who is the 7th president of United States?"
+            ]
+        })
     ]
 
     completion_task = {"task_type": "completion", "task_dict": {"input_keys": ["questions"], }}
@@ -100,7 +69,8 @@ def pipeline(
 
     pipe.add_stage(MonitorStage(config, description="Source rate", unit='questions'))
 
-    pipe.add_stage(LLMEngineStage(config, engine=_build_engine(model_name=model_name)))
+    pipe.add_stage(LLMEngineStage(config, engine=build_engine_with_agent_node(model_name=model_name,
+                                                                              llm_orch=llm_orch)))
 
     sink = pipe.add_stage(InMemorySinkStage(config))
 

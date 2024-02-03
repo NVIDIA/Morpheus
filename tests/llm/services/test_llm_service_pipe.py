@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import copy
 from unittest import mock
 
 import pytest
@@ -90,15 +91,17 @@ def test_completion_pipe_nemo(
 
 @pytest.mark.use_python
 def test_completion_pipe_openai(config: Config,
-                                mock_chat_completion: mock.MagicMock,
+                                chat_completion,
+                                mock_async_openai: mock.MagicMock,
                                 country_prompts: list[str],
                                 capital_responses: list[str]):
-    mock_chat_completion.acreate.side_effect = [{
-        "choices": [{
-            'message': {
-                'content': response
-            }
-        }]
-    } for response in capital_responses]
+
+    chat_completions = []
+    for response in capital_responses:
+        chat_completion_cp = copy.deepcopy(chat_completion)
+        chat_completion_cp.choices[0].message.content = response
+        chat_completions.append(chat_completion_cp)
+
+    mock_async_openai.chat.completions.create.side_effect = chat_completions
 
     _run_pipeline(config, OpenAIChatService, country_prompts, capital_responses)

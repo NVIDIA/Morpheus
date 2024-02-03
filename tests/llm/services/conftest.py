@@ -36,11 +36,6 @@ def openai_fixture(openai):
     yield openai
 
 
-@pytest.fixture(name="mock_chat_completion", autouse=True)
-def mock_chat_completion_fixture(mock_chat_completion):
-    yield mock_chat_completion
-
-
 @pytest.mark.usefixtures("nemollm")
 @pytest.fixture(name="mock_nemollm", autouse=True)
 def mock_nemollm_fixture(mock_nemollm):

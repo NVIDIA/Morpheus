@@ -18,7 +18,7 @@ channels:
   - conda-forge
   - defaults
 dependencies:
-  - langchain=0.0.190
+  - numexpr=2.8.7
   - pip
   - requests-cache=1.1
   - sentence-transformers
@@ -31,5 +31,8 @@ dependencies:
 
   ####### Pip Dependencies (keep sorted!) #######
   - pip:
+    - farm-haystack==1.22.1
+    - langchain==0.0.351
+    - llama-index==0.9.16.post1
     - grpcio-status==1.58 # To keep in sync with 1.58 grpcio which is installed for Morpheus
     - nemollm

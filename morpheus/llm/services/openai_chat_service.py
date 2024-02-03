@@ -44,6 +44,8 @@ class OpenAIChatClient(LLMClient):
 
     Parameters
     ----------
+    parent : OpenAIChatService
+        The parent service for this client.
     model_name : str
         The name of the model to interact with.
 
@@ -54,11 +56,17 @@ class OpenAIChatClient(LLMClient):
         Additional keyword arguments to pass to the model when generating text.
     """
 
-    def __init__(self, model_name: str, set_assistant: bool = False, **model_kwargs: dict[str, typing.Any]) -> None:
+    def __init__(self,
+                 parent: "OpenAIChatService",
+                 model_name: str,
+                 set_assistant: bool = False,
+                 **model_kwargs: dict[str, typing.Any]) -> None:
         if IMPORT_EXCEPTION is not None:
             raise ImportError(IMPORT_ERROR_MESSAGE) from IMPORT_EXCEPTION
 
         super().__init__()
+
+        self._parent = parent
         self._model_name = model_name
         self._set_assistant = set_assistant
         self._prompt_key = "prompt"
@@ -90,12 +98,15 @@ class OpenAIChatClient(LLMClient):
 
         return messages
 
-    def _extract_completion(self, completion: "openai.openai_object.OpenAIObject") -> str:
-        choices = completion.get('choices', [])
-        if len(choices) == 0:
+    def _extract_completion(self, completion: "openai.types.chat.chat_completion.ChatCompletion") -> str:
+        choices = completion.choices
+        if (choices is None or len(choices) == 0):
             raise ValueError("No choices were returned from the model.")
 
-        content = choices[0].get('message', {}).get('content', None)
+        if choices[0].message is None:
+            raise ValueError("No message was returned from the model.")
+
+        content = choices[0].message.content
         if content is None:
             raise ValueError("No content was returned from the model.")
 
@@ -104,7 +115,9 @@ class OpenAIChatClient(LLMClient):
     def _generate(self, prompt: str, assistant: str = None) -> str:
         messages = self._create_messages(prompt, assistant)
 
-        output = openai.ChatCompletion.create(model=self._model_name, messages=messages, **self._model_kwargs)
+        output = self._parent._openai.chat.completions.create(model=self._model_name,
+                                                              messages=messages,
+                                                              **self._model_kwargs)
 
         return self._extract_completion(output)
 
@@ -122,7 +135,9 @@ class OpenAIChatClient(LLMClient):
     async def _generate_async(self, prompt: str, assistant: str = None) -> str:
         messages = self._create_messages(prompt, assistant)
 
-        output = await openai.ChatCompletion.acreate(model=self._model_name, messages=messages, **self._model_kwargs)
+        output = await self._parent._async_openai.chat.completions.create(model=self._model_name,
+                                                                          messages=messages,
+                                                                          **self._model_kwargs)
 
         return self._extract_completion(output)
 
@@ -187,13 +202,22 @@ class OpenAIChatClient(LLMClient):
 class OpenAIChatService(LLMService):
     """
     A service for interacting with OpenAI Chat models, this class should be used to create clients.
+
+    Parameters
+    ----------
+    api_key : str, optional
+        The API key for the LLM service, by default None. If `None` the API key will be read from the
+        `OPENAI_API_KEY` environment variable. If neither are present an error will be raised.
     """
 
-    def __init__(self) -> None:
+    def __init__(self, api_key: str = None) -> None:
         if IMPORT_EXCEPTION is not None:
             raise ImportError(IMPORT_ERROR_MESSAGE) from IMPORT_EXCEPTION
 
         super().__init__()
+
+        self._openai = openai.OpenAI(api_key=api_key)
+        self._async_openai = openai.AsyncOpenAI(api_key=api_key)
 
     def get_client(self,
                    model_name: str,
@@ -214,4 +238,4 @@ class OpenAIChatService(LLMService):
             Additional keyword arguments to pass to the model when generating text.
         """
 
-        return OpenAIChatClient(model_name=model_name, set_assistant=set_assistant, **model_kwargs)
+        return OpenAIChatClient(self, model_name=model_name, set_assistant=set_assistant, **model_kwargs)

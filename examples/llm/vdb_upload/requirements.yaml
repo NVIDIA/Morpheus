@@ -36,5 +36,5 @@ dependencies:
   ####### Pip Dependencies (keep sorted!) #######
   - pip:
     - grpcio-status==1.58 # To keep in sync with 1.58 grpcio which is installed for Morpheus
-    - langchain==0.0.310
+    - langchain==0.0.351
     - pymilvus==2.3.2 # The conda package is woefully out of date and incorrect

@@ -55,7 +55,7 @@ def _build_engine(llm_service: str):
         raise ValueError(f"Invalid LLM service: {llm_service}")
 
     llm_service = llm_service_cls()
-    llm_clinet = llm_service.get_client(model_name=model_name)
+    llm_client = llm_service.get_client(model_name=model_name)
 
     engine = LLMEngine()
 
@@ -65,7 +65,7 @@ def _build_engine(llm_service: str):
                     inputs=["/extracter"],
                     node=PromptTemplateNode(template="What is the capital of {{country}}?", template_format="jinja"))
 
-    engine.add_node("completion", inputs=["/prompts"], node=LLMGenerateNode(llm_client=llm_clinet))
+    engine.add_node("completion", inputs=["/prompts"], node=LLMGenerateNode(llm_client=llm_client))
 
     engine.add_task_handler(inputs=["/completion"], handler=SimpleTaskHandler())
 
