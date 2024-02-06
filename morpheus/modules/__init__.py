@@ -29,6 +29,7 @@ from morpheus.modules import serialize
 from morpheus.modules import to_control_message
 from morpheus.modules import write_to_elasticsearch
 from morpheus.modules import write_to_file
+from morpheus.modules import databricks_deltalake_writer
 
 __all__ = [
     "file_batcher",
@@ -43,5 +44,6 @@ __all__ = [
     "serialize",
     "to_control_message",
     "write_to_file",
-    "write_to_elasticsearch"
+    "write_to_elasticsearch",
+    "databricks_deltalake_writer"
 ]
