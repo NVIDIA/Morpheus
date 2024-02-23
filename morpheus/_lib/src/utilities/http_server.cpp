@@ -45,13 +45,15 @@
 #include <boost/beast/http/verb.hpp>          // for verb, operator<<, verb::unknown
 #include <boost/utility/string_view.hpp>      // for basic_string_view, operator<<, operator==
 #include <glog/logging.h>                     // for CHECK and LOG
-#include <pybind11/cast.h>                    // for cast
+#include <mrc/utils/string_utils.hpp>
+#include <pybind11/cast.h>  // for cast
 #include <pybind11/gil.h>
 #include <pybind11/pybind11.h>  // IWYU pragma: keep
 #include <pybind11/pytypes.h>
 
-#include <array>        // for array (indirectly used by the wrapped python callback function)
-#include <exception>    // for exception
+#include <array>      // for array (indirectly used by the wrapped python callback function)
+#include <exception>  // for exception
+#include <mutex>
 #include <ostream>      // needed for glog
 #include <stdexcept>    // for runtime_error, length_error
 #include <type_traits>  // indirectly used by pybind11 casting
@@ -74,7 +76,7 @@ class Session : public std::enable_shared_from_this<Session>
 {
   public:
     Session(tcp::socket&& socket,
-            std::shared_ptr<morpheus::payload_parse_fn_t> payload_parse_fn,
+            morpheus::payload_parse_fn_t payload_parse_fn,
             const std::string& url_endpoint,
             http::verb method,
             std::size_t max_payload_size,
@@ -121,18 +123,23 @@ class Session : public std::enable_shared_from_this<Session>
 
         // Release ownership of the parsed message and move it into the
         // handle_request method
+        auto address_str = MRC_CONCAT_STR("[" << m_stream.socket().local_endpoint().address().to_string() << ":"
+                                              << m_stream.socket().local_endpoint().port() << "] "
+                                              << m_parser->get().method() << " " << m_parser->get().target());
+        DLOG(INFO) << "HTTP Request Start - " << address_str;
         handle_request(m_parser->release());
+        DLOG(INFO) << "HTTP Request End   - " << address_str << " (" << m_response->result_int() << " - "
+                   << m_response->reason() << ")";
     }
 
     void handle_request(http::request<http::string_body>&& request)
     {
-        DLOG(INFO) << "Received request: " << request.method() << " : " << request.target();
         m_response = std::make_unique<http::response<http::string_body>>();
 
         if (request.target() == m_url_endpoint && (request.method() == m_method))
         {
             std::string body{request.body()};
-            auto parse_status = (*m_payload_parse_fn)(body);
+            auto parse_status = m_payload_parse_fn(m_stream.socket().remote_endpoint(), request);
 
             m_response->result(std::get<0>(parse_status));
             m_response->set(http::field::content_type, std::get<1>(parse_status));
@@ -204,7 +211,7 @@ class Session : public std::enable_shared_from_this<Session>
 
     beast::tcp_stream m_stream;
     beast::flat_buffer m_buffer;
-    std::shared_ptr<morpheus::payload_parse_fn_t> m_payload_parse_fn;
+    morpheus::payload_parse_fn_t m_payload_parse_fn;
     const std::string& m_url_endpoint;
     http::verb m_method;
     std::size_t m_max_payload_size;
@@ -228,7 +235,7 @@ HttpServer::HttpServer(payload_parse_fn_t payload_parse_fn,
                        unsigned short num_threads,
                        std::size_t max_payload_size,
                        std::chrono::seconds request_timeout) :
-  m_payload_parse_fn(std::make_shared<payload_parse_fn_t>(std::move(payload_parse_fn))),
+  m_payload_parse_fn(std::move(payload_parse_fn)),
   m_bind_address(std::move(bind_address)),
   m_port(port),
   m_endpoint(std::move(endpoint)),
@@ -245,10 +252,10 @@ HttpServer::HttpServer(payload_parse_fn_t payload_parse_fn,
         throw std::runtime_error("Invalid method: " + method);
     }
 
-    if (m_num_threads == 0)
-    {
-        throw std::runtime_error("num_threads must be greater than 0");
-    }
+    // if (m_num_threads == 0)
+    // {
+    //     throw std::runtime_error("num_threads must be greater than 0");
+    // }
 
     if (m_endpoint.front() != '/')
     {
@@ -274,7 +281,7 @@ void HttpServer::start_listener(std::binary_semaphore& listener_semaphore, std::
                                             m_method,
                                             m_max_payload_size,
                                             m_request_timeout);
-    m_listener->run();
+    m_listener->start();
 
     for (auto i = 1; i < m_num_threads; ++i)
     {
@@ -293,18 +300,46 @@ void HttpServer::start()
 {
     CHECK(!is_running()) << "HttpServer is already running";
 
+    std::unique_lock lock(m_mutex);
+
     try
     {
-        DLOG(INFO) << "Starting HttpServer on " << m_bind_address << ":" << m_port << " with " << m_num_threads
-                   << " threads";
-        m_listener_threads.reserve(m_num_threads);
+        m_listener = std::make_shared<Listener>(m_io_context,
+                                                m_payload_parse_fn,
+                                                m_bind_address,
+                                                m_port,
+                                                m_endpoint,
+                                                m_method,
+                                                m_max_payload_size,
+                                                m_request_timeout);
+        m_listener->start();
 
-        std::binary_semaphore listener_semaphore{0};
-        std::binary_semaphore started_semaphore{0};
-        m_listener_threads.emplace_back(
-            &HttpServer::start_listener, this, std::ref(listener_semaphore), std::ref(started_semaphore));
-        listener_semaphore.release();
-        started_semaphore.acquire();
+        // DLOG(INFO) << "Starting HttpServer on " << m_bind_address << ":" << m_port << " with " << m_num_threads
+        //            << " threads";
+        // m_listener_threads.reserve(m_num_threads);
+
+        // std::binary_semaphore listener_semaphore{0};
+        // std::binary_semaphore started_semaphore{0};
+        // m_listener_threads.emplace_back(
+        //     &HttpServer::start_listener, this, std::ref(listener_semaphore), std::ref(started_semaphore));
+        // listener_semaphore.release();
+        // started_semaphore.acquire();
+
+        // Launch threads to push the progress engines if desired. This is only used when running in Python mode. In C++
+        // mode, we use threads spawned for us
+        if (m_num_threads > 0)
+        {
+            m_listener_threads.reserve(m_num_threads);
+
+            for (auto i = 0; i < m_num_threads; ++i)
+            {
+                m_listener_threads.emplace_back([this]() {
+                    m_io_context.run();
+                });
+            }
+        }
+
+        m_is_running = true;
     } catch (const std::exception& e)
     {
         LOG(ERROR) << "Caught exception while starting HTTP server: " << e.what();
@@ -314,6 +349,8 @@ void HttpServer::start()
 
 void HttpServer::stop()
 {
+    std::unique_lock lock(m_mutex);
+
     m_io_context.stop();
     while (!m_io_context.stopped())
     {
@@ -339,7 +376,14 @@ void HttpServer::stop()
 
 bool HttpServer::is_running() const
 {
+    std::unique_lock lock(m_mutex);
+
     return m_is_running;
+}
+
+size_t HttpServer::run_one()
+{
+    return m_io_context.poll_one();
 }
 
 HttpServer::~HttpServer()
@@ -370,9 +414,11 @@ std::shared_ptr<HttpServer> HttpServerInterfaceProxy::init(py::function py_parse
                                                            int64_t request_timeout)
 {
     auto wrapped_parse_fn               = PyFuncWrapper(std::move(py_parse_fn));
-    payload_parse_fn_t payload_parse_fn = [wrapped_parse_fn = std::move(wrapped_parse_fn)](const std::string& payload) {
+    payload_parse_fn_t payload_parse_fn = [wrapped_parse_fn = std::move(wrapped_parse_fn)](
+                                              const boost::asio::ip::tcp::endpoint& endpoint,
+                                              const http::request<http::string_body>& request) {
         py::gil_scoped_acquire gil;
-        auto py_payload = py::str(payload);
+        auto py_payload = py::str(request.body());
         auto py_result  = wrapped_parse_fn.operator()<py::tuple, py::str>(py_payload);
         on_complete_cb_fn_t cb_fn{nullptr};
         if (!py_result[3].is_none())
@@ -428,6 +474,12 @@ bool HttpServerInterfaceProxy::is_running(const HttpServer& self)
     return self.is_running();
 }
 
+size_t HttpServerInterfaceProxy::run_one(HttpServer& self)
+{
+    pybind11::gil_scoped_release release;
+    return self.run_one();
+}
+
 HttpServer& HttpServerInterfaceProxy::enter(HttpServer& self)
 {
     self.start();
@@ -444,7 +496,7 @@ void HttpServerInterfaceProxy::exit(HttpServer& self,
 }
 
 Listener::Listener(net::io_context& io_context,
-                   std::shared_ptr<morpheus::payload_parse_fn_t> payload_parse_fn,
+                   morpheus::payload_parse_fn_t payload_parse_fn,
                    const std::string& bind_address,
                    unsigned short port,
                    const std::string& endpoint,
@@ -472,10 +524,10 @@ void Listener::stop()
     m_acceptor->close();
     m_is_running = false;
     m_acceptor.reset();
-    m_payload_parse_fn.reset();
+    m_payload_parse_fn = nullptr;
 }
 
-void Listener::run()
+void Listener::start()
 {
     net::dispatch(m_acceptor->get_executor(),
                   beast::bind_front_handler(&Listener::do_accept, this->shared_from_this()));

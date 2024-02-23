@@ -161,3 +161,24 @@ def prepare_url(url: str) -> str:
         logger.warning("No protocol scheme provided in URL, using: %s", url)
 
     return parsed_url.url
+
+
+_T = typing.TypeVar('_T')
+_P = typing.ParamSpec('_P')
+
+
+def retry_async(retry_exceptions=None):
+    import tenacity
+
+    def inner(func: typing.Callable[_P, _T]) -> typing.Callable[_P, _T]:
+
+        @tenacity.retry(wait=tenacity.wait_exponential_jitter(0.1),
+                        stop=tenacity.stop_after_attempt(10),
+                        retry=tenacity.retry_if_exception_type(retry_exceptions),
+                        reraise=True)
+        async def wrapper(*args: _P.args, **kwargs: _P.kwargs) -> _T:
+            return await func(*args, **kwargs)
+
+        return wrapper
+
+    return inner

@@ -17,9 +17,11 @@
 
 #pragma once
 
-#include <boost/asio/io_context.hpp>    // for io_context
-#include <boost/asio/ip/tcp.hpp>        // for tcp, tcp::acceptor, tcp::endpoint, tcp::socket
-#include <boost/beast/core/error.hpp>   // for error_code
+#include <boost/asio/io_context.hpp>   // for io_context
+#include <boost/asio/ip/tcp.hpp>       // for tcp, tcp::acceptor, tcp::endpoint, tcp::socket
+#include <boost/beast/core/error.hpp>  // for error_code
+#include <boost/beast/http/message.hpp>
+#include <boost/beast/http/string_body.hpp>
 #include <boost/beast/http/verb.hpp>    // for verb
 #include <boost/system/error_code.hpp>  // for error_code
 #include <pybind11/pytypes.h>           // for pybind11::function
@@ -68,7 +70,9 @@ using parse_status_t = std::tuple<unsigned /*http status code*/,
  * Refer to https://www.boost.org/doc/libs/1_74_0/libs/system/doc/html/system.html#ref_class_error_code for more
  * information regarding `boost::system::error_code`.
  */
-using payload_parse_fn_t = std::function<parse_status_t(const std::string& /* post body */)>;
+using payload_parse_fn_t =
+    std::function<parse_status_t(const boost::asio::ip::tcp::endpoint& endpoint,
+                                 const boost::beast::http::request<boost::beast::http::string_body> request)>;
 
 constexpr std::size_t DefaultMaxPayloadSize{1024 * 1024 * 10};  // 10MB
 
@@ -104,8 +108,12 @@ class HttpServer
     void stop();
     bool is_running() const;
 
+    size_t run_one();
+
   private:
     void start_listener(std::binary_semaphore& listener_semaphore, std::binary_semaphore& started_semaphore);
+
+    mutable std::mutex m_mutex;
 
     std::string m_bind_address;
     unsigned short m_port;
@@ -117,7 +125,7 @@ class HttpServer
     std::vector<std::thread> m_listener_threads;
     boost::asio::io_context m_io_context;
     std::shared_ptr<Listener> m_listener;
-    std::shared_ptr<payload_parse_fn_t> m_payload_parse_fn;
+    payload_parse_fn_t m_payload_parse_fn;
     std::atomic<bool> m_is_running;
 };
 
@@ -130,7 +138,7 @@ class Listener : public std::enable_shared_from_this<Listener>
 {
   public:
     Listener(boost::asio::io_context& io_context,
-             std::shared_ptr<morpheus::payload_parse_fn_t> payload_parse_fn,
+             morpheus::payload_parse_fn_t payload_parse_fn,
              const std::string& bind_address,
              unsigned short port,
              const std::string& endpoint,
@@ -140,7 +148,7 @@ class Listener : public std::enable_shared_from_this<Listener>
 
     ~Listener() = default;
 
-    void run();
+    void start();
     void stop();
     bool is_running() const;
 
@@ -152,7 +160,7 @@ class Listener : public std::enable_shared_from_this<Listener>
     boost::asio::ip::tcp::endpoint m_tcp_endpoint;
     std::unique_ptr<boost::asio::ip::tcp::acceptor> m_acceptor;
 
-    std::shared_ptr<morpheus::payload_parse_fn_t> m_payload_parse_fn;
+    morpheus::payload_parse_fn_t m_payload_parse_fn;
     const std::string& m_url_endpoint;
     boost::beast::http::verb m_method;
     std::size_t m_max_payload_size;
@@ -177,6 +185,7 @@ struct HttpServerInterfaceProxy
     static void start(HttpServer& self);
     static void stop(HttpServer& self);
     static bool is_running(const HttpServer& self);
+    static size_t run_one(HttpServer& self);
 
     // Context manager methods
     static HttpServer& enter(HttpServer& self);

@@ -19,16 +19,22 @@
 
 #include <boost/beast/http/status.hpp>        // for int_to_status, status
 #include <boost/fiber/channel_op_status.hpp>  // for channel_op_status
-#include <cudf/io/json.hpp>                   // for json_reader_options & read_json
-#include <glog/logging.h>                     // for CHECK & LOG
+#include <boost/fiber/future/async.hpp>
+#include <boost/fiber/future/future.hpp>
+#include <cudf/io/json.hpp>  // for json_reader_options & read_json
+#include <glog/logging.h>    // for CHECK & LOG
+#include <mrc/node/forward.hpp>
+#include <mrc/runnable/context.hpp>
 
+#include <chrono>
 #include <exception>   // for std::exception
 #include <functional>  // for function
-#include <sstream>     // needed by GLOG
-#include <stdexcept>   // for std::runtime_error
-#include <thread>      // for std::this_thread::sleep_for
-#include <tuple>       // for make_tuple
-#include <utility>     // for std::move
+#include <mutex>
+#include <sstream>    // needed by GLOG
+#include <stdexcept>  // for std::runtime_error
+#include <thread>     // for std::this_thread::sleep_for
+#include <tuple>      // for make_tuple
+#include <utility>    // for std::move
 // IWYU thinks we need more boost headers than we need as int_to_status is defined in status.hpp
 // IWYU pragma: no_include <boost/beast/http.hpp>
 
@@ -52,7 +58,7 @@ HttpServerSourceStage::HttpServerSourceStage(std::string bind_address,
                                              std::chrono::seconds request_timeout,
                                              bool lines,
                                              std::size_t stop_after) :
-  PythonSource(build()),
+  base_t(),
   m_sleep_time{sleep_time},
   m_queue_timeout{queue_timeout},
   m_queue{max_queue_size},
@@ -62,7 +68,11 @@ HttpServerSourceStage::HttpServerSourceStage(std::string bind_address,
     CHECK(boost::beast::http::int_to_status(accept_status) != boost::beast::http::status::unknown)
         << "Invalid HTTP status code: " << accept_status;
 
-    payload_parse_fn_t parser = [this, accept_status, lines](const std::string& payload) {
+    payload_parse_fn_t parser = [this, accept_status, lines](
+                                    const boost::asio::ip::tcp::endpoint& endpoint,
+                                    const boost::beast::http::request<boost::beast::http::string_body>& request) {
+        const auto& payload = request.body();
+
         std::unique_ptr<cudf::io::table_with_metadata> table{nullptr};
         try
         {
@@ -80,7 +90,23 @@ HttpServerSourceStage::HttpServerSourceStage(std::string bind_address,
         {
             // NOLINTNEXTLINE(clang-diagnostic-unused-value)
             DCHECK_NOTNULL(table);
-            auto queue_status = m_queue.push_wait_for(std::move(table), m_queue_timeout);
+
+            // Convert to a ControlMessage
+            auto control_message = std::make_shared<ControlMessage>();
+
+            control_message->payload(MessageMeta::create_from_cpp(std::move(*table), 0));
+
+            // Set some metadata with the request info
+            control_message->set_metadata("http_request",
+                                          {
+                                              {"method", request.method_string()},
+                                              {"endpoint", request.target()},
+                                              {"remote_address", endpoint.address().to_string()},
+                                              {"remote_port", std::to_string(endpoint.port())},
+                                              {"accept_status", accept_status},
+                                          });
+
+            auto queue_status = m_queue.push_wait_for(std::move(control_message), m_queue_timeout);
 
             if (queue_status == boost::fibers::channel_op_status::success)
             {
@@ -124,80 +150,188 @@ HttpServerSourceStage::HttpServerSourceStage(std::string bind_address,
                                             request_timeout);
 }
 
-HttpServerSourceStage::subscriber_fn_t HttpServerSourceStage::build()
-{
-    return [this](rxcpp::subscriber<source_type_t> subscriber) -> void {
-        try
-        {
-            m_server->start();
-            this->source_generator(subscriber);
-        } catch (const SourceStageStopAfter& e)
-        {
-            DLOG(INFO) << "Completed after emitting " << m_records_emitted << " records";
-        } catch (const std::exception& e)
-        {
-            LOG(ERROR) << "Encountered error while listening for incoming HTTP requests: " << e.what() << std::endl;
-            subscriber.on_error(std::make_exception_ptr(e));
-            return;
-        }
-        subscriber.on_completed();
-        this->close();
-    };
-}
+// HttpServerSourceStage::subscriber_fn_t HttpServerSourceStage::build()
+// {
+//     return [this](rxcpp::subscriber<source_type_t> subscriber) -> void {
+//         try
+//         {
+//             m_server->start();
+//             this->source_generator(subscriber);
+//         } catch (const SourceStageStopAfter& e)
+//         {
+//             DLOG(INFO) << "Completed after emitting " << m_records_emitted << " records";
+//         } catch (const std::exception& e)
+//         {
+//             LOG(ERROR) << "Encountered error while listening for incoming HTTP requests: " << e.what() << std::endl;
+//             subscriber.on_error(std::make_exception_ptr(e));
+//             return;
+//         }
+//         subscriber.on_completed();
+//         this->close();
+//     };
+// }
 
-void HttpServerSourceStage::source_generator(rxcpp::subscriber<HttpServerSourceStage::source_type_t> subscriber)
+void HttpServerSourceStage::run(mrc::runnable::Context& context)
 {
-    // only check if the server is running when the queue is empty, allowing all queued messages to be processed prior
-    // to shutting down
-    bool server_running = true;
-    bool queue_closed   = false;
-    while (subscriber.is_subscribed() && server_running && !queue_closed)
+    boost::fibers::future<void> queue_fiber;
+
+    if (context.rank() == 0)
     {
-        table_t table_ptr{nullptr};
-        auto queue_status = m_queue.try_pop(table_ptr);
-        if (queue_status == boost::fibers::channel_op_status::success)
-        {
-            // NOLINTNEXTLINE(clang-diagnostic-unused-value)
-            DCHECK_NOTNULL(table_ptr);
-            try
-            {
-                auto message     = MessageMeta::create_from_cpp(std::move(*table_ptr), 0);
-                auto num_records = message->count();
-                subscriber.on_next(std::move(message));
-                m_records_emitted += num_records;
-            } catch (const std::exception& e)
-            {
-                LOG(ERROR) << "Error occurred converting HTTP payload to Dataframe: " << e.what();
-            }
+        // Lock while we make changes to the server
+        std::unique_lock lock(m_mutex);
 
-            if (m_stop_after > 0 && m_records_emitted >= m_stop_after)
-            {
-                throw SourceStageStopAfter();
-            }
-        }
-        else if (queue_status == boost::fibers::channel_op_status::empty)
-        {
-            // if the queue is empty, maybe it's because our server is not running
-            server_running = m_server->is_running();
+        // Create a simple fiber to pull from the queue and push downstream
+        queue_fiber = boost::fibers::async([this]() {
+            source_type_t value;
+            boost::fibers::channel_op_status status;
 
-            if (server_running)
+            while ((status = m_queue.pop(value)) != boost::fibers::channel_op_status::closed)
             {
-                // Sleep when there are no messages
-                std::this_thread::sleep_for(m_sleep_time);
+                if (status == boost::fibers::channel_op_status::success)
+                {
+                    // Add the count to the records emitted
+                    m_records_emitted += value->payload()->count();
+
+                    this->get_writable_edge()->await_write(std::move(value));
+
+                    if (m_stop_after > 0 && m_records_emitted >= m_stop_after)
+                    {
+                        LOG(INFO) << "Stopping HTTP Source after emitting " << m_records_emitted << "/" << m_stop_after
+                                  << " records";
+
+                        // Now stop the server
+                        m_server->stop();
+                    }
+                }
+                else if (status == boost::fibers::channel_op_status::empty)
+                {
+                    boost::this_fiber::yield();
+                }
+                else
+                {
+                    LOG(ERROR) << "Unknown queue status: " << static_cast<int>(status);
+                }
             }
-        }
-        else if (queue_status == boost::fibers::channel_op_status::closed)
+        });
+
+        // Set up the server
+        m_server->start();
+    }
+
+    context.barrier();
+
+    while (m_server->is_running())
+    {
+        if (m_server->run_one() == 0)
         {
-            queue_closed = true;
-        }
-        else
-        {
-            std::string error_msg{"Unknown queue status: " + std::to_string(static_cast<int>(queue_status))};
-            LOG(ERROR) << error_msg;
-            throw std::runtime_error(error_msg);
+            // Yield when we have no messages so we can check if the server is still running
+            boost::this_fiber::yield();
         }
     }
+
+    context.barrier();
+
+    if (context.rank() == 0)
+    {
+        // Lock while we make changes to the server
+        std::unique_lock lock(m_mutex);
+
+        // Close the queue to prevent any new messages
+        m_queue.close();
+
+        // Wait for the queue fiber to finish pushing all messages
+        queue_fiber.get();
+
+        // Release the downstream edges
+        base_t::release_edge_connection();
+
+        m_server.reset();
+    }
 }
+
+void HttpServerSourceStage::on_state_update(const State& new_state)
+{
+    // Lock while we make changes to the server
+    std::unique_lock lock(m_mutex);
+
+    if (new_state == State::Stop)
+    {
+        if (m_server)
+        {
+            m_server->stop();
+        }
+    }
+    else if (new_state == State::Kill)
+    {
+        if (m_server)
+        {
+            m_server->stop();
+        }
+        m_queue.close();
+    }
+}
+
+// void HttpServerSourceStage::source_generator(rxcpp::subscriber<HttpServerSourceStage::source_type_t> subscriber)
+// {
+//     // only check if the server is running when the queue is empty, allowing all queued messages to be processed
+//     prior
+//     // to shutting down
+//     bool server_running = true;
+//     bool queue_closed   = false;
+//     while (subscriber.is_subscribed() && server_running && !queue_closed)
+//     {
+//         table_t table_ptr{nullptr};
+
+//         auto queue_status = m_queue.pop_wait_for(table_ptr, std::chrono::milliseconds(100));
+
+//         if (queue_status == boost::fibers::channel_op_status::success)
+//         {
+//             // NOLINTNEXTLINE(clang-diagnostic-unused-value)
+//             DCHECK_NOTNULL(table_ptr);
+//             try
+//             {
+//                 auto message     = MessageMeta::create_from_cpp(std::move(*table_ptr), 0);
+//                 auto num_records = message->count();
+//                 subscriber.on_next(std::move(message));
+//                 m_records_emitted += num_records;
+//             } catch (const std::exception& e)
+//             {
+//                 LOG(ERROR) << "Error occurred converting HTTP payload to Dataframe: " << e.what();
+//             }
+
+//             if (m_stop_after > 0 && m_records_emitted >= m_stop_after)
+//             {
+//                 throw SourceStageStopAfter();
+//             }
+//         }
+//         else if (queue_status == boost::fibers::channel_op_status::timeout)
+//         {
+//             // Yield when we have no messages so we can check if the server is still running
+//             boost::this_fiber::yield();
+//         }
+//         else if (queue_status == boost::fibers::channel_op_status::empty)
+//         {
+//             // if the queue is empty, maybe it's because our server is not running
+//             server_running = m_server->is_running();
+
+//             if (server_running)
+//             {
+//                 // Sleep when there are no messages
+//                 std::this_thread::sleep_for(m_sleep_time);
+//             }
+//         }
+//         else if (queue_status == boost::fibers::channel_op_status::closed)
+//         {
+//             queue_closed = true;
+//         }
+//         else
+//         {
+//             std::string error_msg{"Unknown queue status: " + std::to_string(static_cast<int>(queue_status))};
+//             LOG(ERROR) << error_msg;
+//             throw std::runtime_error(error_msg);
+//         }
+//     }
+// }
 
 void HttpServerSourceStage::close()
 {

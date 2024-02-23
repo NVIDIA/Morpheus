@@ -66,7 +66,10 @@ class LangChainAgentNode(LLMNodeBase):
             return results
 
         # We are not dealing with a list, so run single
-        return await self._agent_executor.arun(**kwargs)
+        try:
+            return await self._agent_executor.arun(**kwargs)
+        except Exception as e:
+            logger.exception("Error running agent: %s: %s", kwargs, e, exc_info=True)
 
     async def execute(self, context: LLMContext) -> LLMContext:
 

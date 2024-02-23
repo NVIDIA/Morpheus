@@ -16,6 +16,7 @@
 import logging
 import os
 import queue
+import threading
 import time
 import typing
 from http import HTTPStatus
@@ -26,7 +27,7 @@ import cudf
 
 from morpheus.cli.register_stage import register_stage
 from morpheus.config import Config
-from morpheus.messages import MessageMeta
+from morpheus.messages import ControlMessage, MessageMeta
 from morpheus.pipeline.preallocator_mixin import PreallocatorMixin
 from morpheus.pipeline.single_output_source import SingleOutputSource
 from morpheus.pipeline.stage_schema import StageSchema
@@ -34,6 +35,8 @@ from morpheus.utils.http_utils import HTTPMethod
 from morpheus.utils.http_utils import HttpParseResponse
 from morpheus.utils.http_utils import MimeTypes
 from morpheus.utils.producer_consumer_queue import Closed
+from morpheus.common import FiberQueue
+from morpheus.common import HttpServer
 
 logger = logging.getLogger(__name__)
 
@@ -110,9 +113,12 @@ class HttpServerSourceStage(PreallocatorMixin, SingleOutputSource):
         self._stop_after = stop_after
 
         # These are only used when C++ mode is disabled
-        self._queue = None
+        self._server: HttpServer = None
+        self._queue: FiberQueue = None
         self._processing = False
         self._records_emitted = 0
+
+        self._lock = threading.Lock()
 
         if method not in SUPPORTED_METHODS:
             raise ValueError(f"Unsupported method: {method}")
@@ -130,12 +136,16 @@ class HttpServerSourceStage(PreallocatorMixin, SingleOutputSource):
         return True
 
     def compute_schema(self, schema: StageSchema):
-        schema.output_schema.set_type(MessageMeta)
+        schema.output_schema.set_type(ControlMessage)
 
     def _parse_payload(self, payload: str) -> HttpParseResponse:
+        from morpheus._lib.message import MessageMeta as MessageMetaCpp
         try:
             # engine='cudf' is needed when lines=False to avoid using pandas
             df = cudf.read_json(payload, lines=self._lines, engine='cudf')
+
+            message = ControlMessage()
+            message.payload(MessageMetaCpp(df))
         except Exception as e:
             err_msg = "Error occurred converting HTTP payload to Dataframe"
             logger.error("%s: %s", err_msg, e)
@@ -144,7 +154,7 @@ class HttpServerSourceStage(PreallocatorMixin, SingleOutputSource):
                                      body=err_msg)
 
         try:
-            self._queue.put(df, block=True, timeout=self._queue_timeout)
+            self._queue.put(message, block=True, timeout=self._queue_timeout)
             return HttpParseResponse(status_code=self._accept_status.value, content_type=MimeTypes.TEXT.value, body="")
 
         except (queue.Full, Closed) as e:
@@ -166,64 +176,119 @@ class HttpServerSourceStage(PreallocatorMixin, SingleOutputSource):
                                      body=err_msg)
 
     def _generate_frames(self) -> typing.Iterator[MessageMeta]:
-        from morpheus.common import FiberQueue
-        from morpheus.common import HttpServer
 
-        with (FiberQueue(self._max_queue_size) as self._queue,
-              HttpServer(parse_fn=self._parse_payload,
-                         bind_address=self._bind_address,
-                         port=self._port,
-                         endpoint=self._endpoint,
-                         method=self._method.value,
-                         num_threads=self._num_server_threads,
-                         max_payload_size=self._max_payload_size_bytes,
-                         request_timeout=self._request_timeout_secs) as http_server):
+        while True:
 
-            self._processing = True
-            while self._processing:
-                # Read as many messages as we can from the queue if it's empty check to see if we should be shutting
-                # down. It is important that any messages we received that are in the queue are processed before we
-                # shutdown since we already returned an OK response to the client.
-                df = None
-                try:
-                    df = self._queue.get()
-                except queue.Empty:
-                    if (not http_server.is_running()):
-                        self._processing = False
-                    else:
-                        logger.debug("Queue empty, sleeping ...")
-                        time.sleep(self._sleep_time)
-                except Closed:
-                    logger.error("Queue closed unexpectedly, shutting down")
-                    self._processing = False
+            # Progress the http server once
+            if (self._server.is_running()):
+                self._server.run_one()
 
-                if df is not None:
-                    num_records = len(df)
-                    yield MessageMeta(df)
+            # Read one message from the queue
+            try:
+                message: ControlMessage = self._queue.get(block=False)
+
+                num_records = len(message.payload().df)
+
+                # Yield the message
+                yield message
+
+                # Lock to prevent multiple threads from updating the records emitted at the same time
+                with self._lock:
+                    # Track how many records we have emmitted
                     self._records_emitted += num_records
 
+                    # If we have emitted enough records, stop processing
                     if self._stop_after > 0 and self._records_emitted >= self._stop_after:
-                        self._processing = False
+                        self._server.stop()
+
+            except queue.Empty:
+                # Do nothing if the queue is empty
+                continue
+
+            except Closed:
+                # No more messages to read and the server must be shut down
+                break
+
+        # from morpheus.common import FiberQueue
+        # from morpheus.common import HttpServer
+
+        # with (FiberQueue(self._max_queue_size) as self._queue,
+        #       HttpServer(parse_fn=self._parse_payload,
+        #                  bind_address=self._bind_address,
+        #                  port=self._port,
+        #                  endpoint=self._endpoint,
+        #                  method=self._method.value,
+        #                  num_threads=self._num_server_threads,
+        #                  max_payload_size=self._max_payload_size_bytes,
+        #                  request_timeout=self._request_timeout_secs) as http_server):
+
+        #     import asyncio
+        #     q = asyncio.Queue(maxsize=self._max_queue_size)
+
+        #     q.
+
+        #     self._processing = True
+        #     while self._processing:
+        #         # Read as many messages as we can from the queue if it's empty check to see if we should be shutting
+        #         # down. It is important that any messages we received that are in the queue are processed before we
+        #         # shutdown since we already returned an OK response to the client.
+        #         df = None
+        #         try:
+        #             df = self._queue.get(block=False)
+        #         except queue.Empty:
+        #             if (not http_server.is_running()):
+        #                 self._processing = False
+        #             else:
+        #                 logger.debug("Queue empty, sleeping ...")
+        #                 time.sleep(self._sleep_time)
+        #         except Closed:
+        #             logger.error("Queue closed unexpectedly, shutting down")
+        #             self._processing = False
+
+        #         if df is not None:
+        #             num_records = len(df)
+        #             yield MessageMeta(df)
+        #             self._records_emitted += num_records
+
+        #             if self._stop_after > 0 and self._records_emitted >= self._stop_after:
+        #                 self._processing = False
 
     def _build_source(self, builder: mrc.Builder) -> mrc.SegmentObject:
         if self._build_cpp_node():
             import morpheus._lib.stages as _stages
-            node = _stages.HttpServerSourceStage(builder,
-                                                 self.unique_name,
-                                                 bind_address=self._bind_address,
-                                                 port=self._port,
-                                                 endpoint=self._endpoint,
-                                                 method=self._method.value,
-                                                 accept_status=self._accept_status.value,
-                                                 sleep_time=self._sleep_time,
-                                                 queue_timeout=self._queue_timeout,
-                                                 max_queue_size=self._max_queue_size,
-                                                 num_server_threads=self._num_server_threads,
-                                                 max_payload_size=self._max_payload_size_bytes,
-                                                 request_timeout=self._request_timeout_secs,
-                                                 lines=self._lines,
-                                                 stop_after=self._stop_after)
+            node = _stages.HttpServerSourceStage(
+                builder,
+                self.unique_name,
+                bind_address=self._bind_address,
+                port=self._port,
+                endpoint=self._endpoint,
+                method=self._method.value,
+                accept_status=self._accept_status.value,
+                sleep_time=self._sleep_time,
+                queue_timeout=self._queue_timeout,
+                max_queue_size=self._max_queue_size,
+                num_server_threads=0,  # Use MRC created threads instead
+                max_payload_size=self._max_payload_size_bytes,
+                request_timeout=self._request_timeout_secs,
+                lines=self._lines,
+                stop_after=self._stop_after)
+
+            node.launch_options.pe_count = self._num_server_threads
         else:
-            node = builder.make_source(self.unique_name, self._generate_frames())
+
+            self._queue = FiberQueue(self._max_queue_size)
+            self._server = HttpServer(parse_fn=self._parse_payload,
+                                      bind_address=self._bind_address,
+                                      port=self._port,
+                                      endpoint=self._endpoint,
+                                      method=self._method.value,
+                                      num_threads=0,
+                                      max_payload_size=self._max_payload_size_bytes,
+                                      request_timeout=self._request_timeout_secs)
+            self._server.start()
+
+            node = builder.make_source(self.unique_name, self._generate_frames)
+
+            node.launch_options.pe_count = 2
 
         return node
