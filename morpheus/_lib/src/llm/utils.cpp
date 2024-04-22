@@ -112,9 +112,16 @@ input_mappings_t process_input_names(user_input_mappings_t user_inputs, const st
 
         if (found_star_input_name != found_star_node_name)
         {
-            throw std::invalid_argument(
-                "LLMNode::add_node() called with a placeholder input name and node name that "
-                "do not match");
+            if (found_star_input_name)
+            {
+                throw std::invalid_argument(
+                    "LLMNode::add_node() called with a placeholder external name but no placeholder internal name");
+            }
+            else
+            {
+                throw std::invalid_argument(
+                    "LLMNode::add_node() called with a placeholder internal name but no placeholder external name");
+            }
         }
         else if (found_star_input_name && found_star_node_name)
         {

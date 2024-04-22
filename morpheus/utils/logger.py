@@ -112,49 +112,53 @@ def _configure_from_log_level(*extra_handlers: logging.Handler, log_level: int):
     # Get the root Morpheus logger
     morpheus_logger = logging.getLogger("morpheus")
 
-    # Set the level here
-    set_log_level(log_level=log_level)
+    # Prevent reconfiguration if called again
+    if (not getattr(morpheus_logger, "_configured_by_morpheus", False)):
+        setattr(morpheus_logger, "_configured_by_morpheus", True)
 
-    # Dont propagate upstream
-    morpheus_logger.propagate = False
-    morpheus_logging_queue = multiprocessing.Queue()
+        # Set the level here
+        set_log_level(log_level=log_level)
 
-    # This needs the be the only handler for morpheus logger
-    morpheus_queue_handler = logging.handlers.QueueHandler(morpheus_logging_queue)
+        # Dont propagate upstream
+        morpheus_logger.propagate = False
+        morpheus_logging_queue = multiprocessing.Queue()
 
-    # At this point, any morpheus logger will propagate upstream to the morpheus root and then be handled by the queue
-    # handler
-    morpheus_logger.addHandler(morpheus_queue_handler)
+        # This needs the be the only handler for morpheus logger
+        morpheus_queue_handler = logging.handlers.QueueHandler(morpheus_logging_queue)
 
-    log_file = os.path.join(appdirs.user_log_dir(appauthor="NVIDIA", appname="morpheus"), "morpheus.log")
+        # At this point, any morpheus logger will propagate upstream to the morpheus root and then be handled by the queue
+        # handler
+        morpheus_logger.addHandler(morpheus_queue_handler)
 
-    # Ensure the log directory exists
-    os.makedirs(os.path.dirname(log_file), exist_ok=True)
+        log_file = os.path.join(appdirs.user_log_dir(appauthor="NVIDIA", appname="morpheus"), "morpheus.log")
 
-    # Now we build all of the handlers for the queue listener
-    file_handler = logging.handlers.RotatingFileHandler(filename=log_file, backupCount=5, maxBytes=1000000)
-    file_handler.setLevel(logging.DEBUG)
-    file_handler.setFormatter(
-        logging.Formatter('%(asctime)s - [%(levelname)s]: %(message)s {%(name)s, %(threadName)s}'))
+        # Ensure the log directory exists
+        os.makedirs(os.path.dirname(log_file), exist_ok=True)
 
-    # Tqdm stream handler (avoids messing with progress bars)
-    console_handler = TqdmLoggingHandler()
+        # Now we build all of the handlers for the queue listener
+        file_handler = logging.handlers.RotatingFileHandler(filename=log_file, backupCount=5, maxBytes=1000000)
+        file_handler.setLevel(logging.DEBUG)
+        file_handler.setFormatter(
+            logging.Formatter('%(asctime)s - [%(levelname)s]: %(message)s {%(name)s, %(threadName)s}'))
 
-    # Build and run the queue listener to actually process queued messages
-    queue_listener = logging.handlers.QueueListener(morpheus_logging_queue,
-                                                    console_handler,
-                                                    file_handler,
-                                                    *extra_handlers,
-                                                    respect_handler_level=True)
-    queue_listener.start()
-    queue_listener._thread.name = "Logging Thread"
+        # Tqdm stream handler (avoids messing with progress bars)
+        console_handler = TqdmLoggingHandler()
 
-    # Register a function to kill the listener thread before shutting down. prevents error on intpreter close
-    def stop_queue_listener():
-        queue_listener.stop()
+        # Build and run the queue listener to actually process queued messages
+        queue_listener = logging.handlers.QueueListener(morpheus_logging_queue,
+                                                        console_handler,
+                                                        file_handler,
+                                                        *extra_handlers,
+                                                        respect_handler_level=True)
+        queue_listener.start()
+        queue_listener._thread.name = "Logging Thread"
 
-    import atexit
-    atexit.register(stop_queue_listener)
+        # Register a function to kill the listener thread before shutting down. prevents error on intpreter close
+        def stop_queue_listener():
+            queue_listener.stop()
+
+        import atexit
+        atexit.register(stop_queue_listener)
 
 
 def configure_logging(*extra_handlers: logging.Handler, log_level: int = None, log_config_file: str = None):

@@ -93,14 +93,14 @@ class NeMoLLMClient(LLMClient):
     @typing.overload
     def generate_batch(self,
                        inputs: dict[str, list],
-                       return_exceptions: typing.Literal[True] = True) -> list[str | BaseException]:
+                       return_exceptions: typing.Literal[True] = True, **kwargs) -> list[str | BaseException]:
         ...
 
     @typing.overload
-    def generate_batch(self, inputs: dict[str, list], return_exceptions: typing.Literal[False] = False) -> list[str]:
+    def generate_batch(self, inputs: dict[str, list], return_exceptions: typing.Literal[False] = False, **kwargs) -> list[str]:
         ...
 
-    def generate_batch(self, inputs: dict[str, list], return_exceptions=False) -> list[str] | list[str | BaseException]:
+    def generate_batch(self, inputs: dict[str, list], return_exceptions=False, **kwargs) -> list[str] | list[str | BaseException]:
         """
         Issue a request to generate a list of responses based on a list of prompts.
 
@@ -154,18 +154,18 @@ class NeMoLLMClient(LLMClient):
     @typing.overload
     async def generate_batch_async(self,
                                    inputs: dict[str, list],
-                                   return_exceptions: typing.Literal[True] = True) -> list[str | BaseException]:
+                                   return_exceptions: typing.Literal[True] = True, **kwargs) -> list[str | BaseException]:
         ...
 
     @typing.overload
     async def generate_batch_async(self,
                                    inputs: dict[str, list],
-                                   return_exceptions: typing.Literal[False] = False) -> list[str]:
+                                   return_exceptions: typing.Literal[False] = False, **kwargs) -> list[str]:
         ...
 
     async def generate_batch_async(self,
                                    inputs: dict[str, list],
-                                   return_exceptions=False) -> list[str] | list[str | BaseException]:
+                                   return_exceptions=False, **kwargs) -> list[str] | list[str | BaseException]:
         """
         Issue an asynchronous request to generate a list of responses based on a list of prompts.
 

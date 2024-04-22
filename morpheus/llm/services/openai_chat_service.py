@@ -236,14 +236,14 @@ class OpenAIChatClient(LLMClient):
     @typing.overload
     def generate_batch(self,
                        inputs: dict[str, list],
-                       return_exceptions: typing.Literal[True] = True) -> list[str | BaseException]:
+                       return_exceptions: typing.Literal[True] = True, **kwargs) -> list[str | BaseException]:
         ...
 
     @typing.overload
-    def generate_batch(self, inputs: dict[str, list], return_exceptions: typing.Literal[False] = False) -> list[str]:
+    def generate_batch(self, inputs: dict[str, list], return_exceptions: typing.Literal[False] = False, **kwargs) -> list[str]:
         ...
 
-    def generate_batch(self, inputs: dict[str, list], return_exceptions=False) -> list[str] | list[str | BaseException]:
+    def generate_batch(self, inputs: dict[str, list], return_exceptions=False, **kwargs) -> list[str] | list[str | BaseException]:
         """
         Issue a request to generate a list of responses based on a list of prompts.
 
@@ -265,27 +265,27 @@ class OpenAIChatClient(LLMClient):
         for (i, prompt) in enumerate(prompts):
             assistant = assistants[i] if assistants is not None else None
             if (return_exceptions):
-                results.append(self._generate(prompt, assistant, return_exceptions=True))
+                results.append(self._generate(prompt, assistant, return_exceptions=True, **kwargs))
             else:
-                results.append(self._generate(prompt, assistant, return_exceptions=False))
+                results.append(self._generate(prompt, assistant, return_exceptions=False, **kwargs))
 
         return results
 
     @typing.overload
     async def generate_batch_async(self,
                                    inputs: dict[str, list],
-                                   return_exceptions: typing.Literal[True] = True) -> list[str | BaseException]:
+                                   return_exceptions: typing.Literal[True] = True, **kwargs) -> list[str | BaseException]:
         ...
 
     @typing.overload
     async def generate_batch_async(self,
                                    inputs: dict[str, list],
-                                   return_exceptions: typing.Literal[False] = False) -> list[str]:
+                                   return_exceptions: typing.Literal[False] = False, **kwargs) -> list[str]:
         ...
 
     async def generate_batch_async(self,
                                    inputs: dict[str, list],
-                                   return_exceptions=False) -> list[str] | list[str | BaseException]:
+                                   return_exceptions=False, **kwargs) -> list[str] | list[str | BaseException]:
         """
         Issue an asynchronous request to generate a list of responses based on a list of prompts.
 
@@ -306,9 +306,9 @@ class OpenAIChatClient(LLMClient):
         coros = []
         for (i, prompt) in enumerate(prompts):
             assistant = assistants[i] if assistants is not None else None
-            coros.append(self._generate_async(prompt, assistant))
+            coros.append(self._generate_async(prompt, assistant, **kwargs))
 
-        return await asyncio.gather(*coros, return_exceptions=return_exceptions)
+        return await asyncio.gather(*coros, return_exceptions=return_exceptions, **kwargs)
 
 
 class OpenAIChatService(LLMService):

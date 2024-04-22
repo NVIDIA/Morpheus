@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import asyncio
 import copy
 import json
 import logging
@@ -33,186 +34,12 @@ IMPORT_EXCEPTION = None
 IMPORT_ERROR_MESSAGE = "MilvusVectorDBResourceService requires the milvus and pymilvus packages to be installed."
 
 try:
-    import pymilvus
-    from pymilvus.orm.mutation import MutationResult
-
-    from morpheus.service.vdb.milvus_client import MilvusClient  # pylint: disable=ungrouped-imports
+    from langchain.vectorstores.faiss import FAISS
 except ImportError as import_exc:
     IMPORT_EXCEPTION = import_exc
 
 
-class FieldSchemaEncoder(json.JSONEncoder):
-
-    def default(self, o: typing.Any) -> str:
-        """
-        Serialize objects to a JSON-compatible string format.
-
-        Parameters
-        ----------
-        o : typing.Any
-            Object to be serialized.
-
-        Returns
-        -------
-        str
-            JSON-compatible string format of the object.
-        """
-
-        if isinstance(o, pymilvus.DataType):
-            return str(o)
-        return json.JSONEncoder.default(self, o)
-
-    @staticmethod
-    def object_hook(obj: dict) -> dict:
-        """
-        Updated dictionary with pymilvus datatype.
-
-        Parameters
-        ----------
-        obj : dict
-            Dictionary to be converted.
-
-        Returns
-        -------
-        dict
-            Dictionary with changes to its original format.
-        """
-
-        if "type" in obj and "DataType." in obj["type"]:
-            obj["type"] = getattr(pymilvus.DataType, obj["type"].split(".")[1])
-        return obj
-
-    @staticmethod
-    def dump(field: "pymilvus.FieldSchema", f: typing.IO) -> str:
-        """
-        Serialize a FieldSchema object to a JSON file.
-
-        Parameters
-        ----------
-        field : pymilvus.FieldSchema
-            FieldSchema object to be serialized.
-        f : typing.IO
-            File-like object to which the data is serialized.
-
-        Returns
-        -------
-        str
-            JSON string.
-        """
-        return json.dump(field, f, cls=FieldSchemaEncoder)
-
-    @staticmethod
-    def dumps(field: "pymilvus.FieldSchema") -> str:
-        """
-        Serialize a FieldSchema object to a JSON-compatible string format.
-
-        Parameters
-        ----------
-        field : pymilvus.FieldSchema
-            FieldSchema object to be serialized.
-
-        Returns
-        -------
-        str
-            JSON-compatible string format of the FieldSchema object.
-        """
-
-        return json.dumps(field, cls=FieldSchemaEncoder)
-
-    @staticmethod
-    def load(f_obj: typing.IO) -> "pymilvus.FieldSchema":
-        """
-        Deserialize a JSON file to a FieldSchema object.
-
-        Parameters
-        ----------
-        f_obj : typing.IO
-            File-like object from which the data is deserialized.
-
-        Returns
-        -------
-        pymilvus.FieldSchema
-            Deserialized FieldSchema object.
-        """
-        return pymilvus.FieldSchema.construct_from_dict(json.load(f_obj, object_hook=FieldSchemaEncoder.object_hook))
-
-    @staticmethod
-    def loads(field: str) -> "pymilvus.FieldSchema":
-        """
-        Deserialize a JSON-compatible string to a FieldSchema object.
-
-        Parameters
-        ----------
-        field : str
-            JSON-compatible string to be deserialized.
-
-        Returns
-        -------
-        pymilvus.FieldSchema
-            Deserialized FieldSchema object.
-        """
-
-        return pymilvus.FieldSchema.construct_from_dict(json.loads(field, object_hook=FieldSchemaEncoder.object_hook))
-
-    @staticmethod
-    def from_dict(field: dict) -> "pymilvus.FieldSchema":
-        """
-        Convert a dictionary to a FieldSchema object.
-
-        Parameters
-        ----------
-        field : dict
-            Dictionary to be converted to a FieldSchema object.
-
-        Returns
-        -------
-        pymilvus.FieldSchema
-            Converted FieldSchema object.
-        """
-
-        # FieldSchema converts dtype -> type when serialized. We need to convert any dtype to type before deserilaizing
-
-        # First convert any dtype to type
-        if ("dtype" in field):
-            field["type"] = field["dtype"]
-            del field["dtype"]
-
-        # Convert string type to DataType
-        if ("type" in field and isinstance(field["type"], str)):
-            field = FieldSchemaEncoder.object_hook(field)
-
-        # Now use the normal from dict function
-        return pymilvus.FieldSchema.construct_from_dict(field)
-
-
-def with_collection_lock(func: typing.Callable) -> typing.Callable:
-    """
-    A decorator to synchronize access to a collection with a lock. This decorator ensures that operations on a
-    specific collection within the Milvus Vector Database are synchronized by acquiring and
-    releasing a collection-specific lock.
-
-    Parameters
-    ----------
-    func : Callable
-        The function to be wrapped with the lock.
-
-    Returns
-    -------
-    Callable
-        The wrapped function with the lock acquisition logic.
-    """
-
-    @wraps(func)
-    def wrapper(self, name, *args, **kwargs):
-        collection_lock = MilvusVectorDBService.get_collection_lock(name)
-        with collection_lock:
-            result = func(self, name, *args, **kwargs)
-            return result
-
-    return wrapper
-
-
-class MilvusVectorDBResourceService(VectorDBResourceService):
+class FaissVectorDBResourceService(VectorDBResourceService):
     """
     Represents a service for managing resources in a Milvus Vector Database.
 
@@ -224,35 +51,19 @@ class MilvusVectorDBResourceService(VectorDBResourceService):
         An instance of the MilvusClient for interaction with the Milvus Vector Database.
     """
 
-    def __init__(self, name: str, client: "MilvusClient") -> None:
+    def __init__(self, parent: "FaissVectorDBService", *, name: str) -> None:
         if IMPORT_EXCEPTION is not None:
             raise ImportError(IMPORT_ERROR_MESSAGE) from IMPORT_EXCEPTION
 
         super().__init__()
 
+        self._parent = parent
         self._name = name
-        self._client = client
 
-        self._collection = self._client.get_collection(collection_name=self._name)
-        self._fields: list[pymilvus.FieldSchema] = self._collection.schema.fields
-
-        self._vector_field = None
-        self._fillna_fields_dict = {}
-
-        for field in self._fields:
-            if field.dtype == pymilvus.DataType.FLOAT_VECTOR:
-                self._vector_field = field.name
-            else:
-                if not field.auto_id:
-                    self._fillna_fields_dict[field.name] = field.dtype
-
-        self._collection.load()
-
-    def _set_up_collection(self):
-        """
-        Set up the collection fields.
-        """
-        self._fields = self._collection.schema.fields
+        self._index = FAISS.load_local(folder_path=self._parent._local_dir,
+                                       embeddings=self._parent._embeddings,
+                                       index_name=self._name,
+                                       allow_dangerous_deserialization=True)
 
     def insert(self, data: list[list] | list[dict], **kwargs: dict[str, typing.Any]) -> dict:
         """
@@ -270,10 +81,7 @@ class MilvusVectorDBResourceService(VectorDBResourceService):
         dict
             Returns response content as a dictionary.
         """
-        result = self._collection.insert(data, **kwargs)
-        self._collection.flush()
-
-        return self._insert_result_to_dict(result=result)
+        raise NotImplementedError("Insert operation is not supported in FAISS")
 
     def insert_dataframe(self, df: typing.Union[cudf.DataFrame, pd.DataFrame], **kwargs: dict[str, typing.Any]) -> dict:
         """
@@ -291,34 +99,7 @@ class MilvusVectorDBResourceService(VectorDBResourceService):
         dict
             Returns response content as a dictionary.
         """
-
-        if isinstance(df, cudf.DataFrame):
-            df = df.to_pandas()
-
-        # Ensure that there are no None values in the DataFrame entries.
-        for field_name, dtype in self._fillna_fields_dict.items():
-            if dtype in (pymilvus.DataType.VARCHAR, pymilvus.DataType.STRING):
-                df[field_name] = df[field_name].fillna("")
-            elif dtype in (pymilvus.DataType.INT8,
-                           pymilvus.DataType.INT16,
-                           pymilvus.DataType.INT32,
-                           pymilvus.DataType.INT64):
-                df[field_name] = df[field_name].fillna(0)
-            elif dtype in (pymilvus.DataType.FLOAT, pymilvus.DataType.DOUBLE):
-                df[field_name] = df[field_name].fillna(0.0)
-            elif dtype == pymilvus.DataType.BOOL:
-                df[field_name] = df[field_name].fillna(False)
-            else:
-                logger.info("Skipped checking 'None' in the field: %s, with datatype: %s", field_name, dtype)
-
-        # From the schema, this is the list of columns we need, excluding any auto_id columns
-        column_names = [field.name for field in self._fields if not field.auto_id]
-
-        # Note: dataframe columns has to be in the order of collection schema fields.s
-        result = self._collection.insert(data=df[column_names], **kwargs)
-        self._collection.flush()
-
-        return self._insert_result_to_dict(result=result)
+        raise NotImplementedError("Insert operation is not supported in FAISS")
 
     def describe(self, **kwargs: dict[str, typing.Any]) -> dict:
         """
@@ -334,7 +115,7 @@ class MilvusVectorDBResourceService(VectorDBResourceService):
         dict
             Returns response content as a dictionary.
         """
-        return self._client.describe_collection(collection_name=self._name, **kwargs)
+        raise NotImplementedError("Describe operation is not supported in FAISS")
 
     def query(self, query: str, **kwargs: dict[str, typing.Any]) -> typing.Any:
         """
@@ -361,15 +142,12 @@ class MilvusVectorDBResourceService(VectorDBResourceService):
             If query argument is `None` and `data` keyword argument doesn't exist.
             If `data` keyword arguement is `None`.
         """
-
-        logger.debug("Searching in collection: %s, query=%s, kwargs=%s", self._name, query, kwargs)
-
-        return self._client.query(collection_name=self._name, filter=query, **kwargs)
+        raise NotImplementedError("Query operation is not supported in FAISS")
 
     async def similarity_search(self,
                                 embeddings: list[list[float]],
                                 k: int = 4,
-                                **kwargs: dict[str, typing.Any]) -> list[dict]:
+                                **kwargs: dict[str, typing.Any]) -> list[list[dict]]:
         """
         Perform a similarity search within the collection.
 
@@ -388,28 +166,12 @@ class MilvusVectorDBResourceService(VectorDBResourceService):
             Returns a list of dictionaries representing the results of the similarity search.
         """
 
-        self._collection.load()
+        async def single_search(single_embedding):
+            docs = await self._index.asimilarity_search_by_vector(embedding=single_embedding, k=k)
 
-        assert self._vector_field is not None, "Cannot perform similarity search on a collection without a vector field"
+            return [d.dict() for d in docs]
 
-        # Determine result metadata fields.
-        output_fields = [x.name for x in self._fields if x.name != self._vector_field]
-
-        params = {"metric_type": "L2", "params": {"ef": 10}}
-
-        response = self._collection.search(data=embeddings,
-                                           anns_field=self._vector_field,
-                                           param=params,
-                                           limit=k,
-                                           output_fields=output_fields,
-                                           **kwargs)
-
-        outputs = []
-
-        for res in response:
-            outputs.append([{x: hit.entity.get(x) for x in output_fields} for hit in res])
-
-        return outputs
+        return list(await asyncio.gather(*[single_search(embedding) for embedding in embeddings]))
 
     def update(self, data: list[typing.Any], **kwargs: dict[str, typing.Any]) -> dict[str, typing.Any]:
         """
@@ -427,15 +189,7 @@ class MilvusVectorDBResourceService(VectorDBResourceService):
         dict[str, typing.Any]
             Returns result of the updated operation stats.
         """
-
-        if not isinstance(data, list):
-            raise RuntimeError("Data is not of type list.")
-
-        result = self._client.upsert(collection_name=self._name, entities=data, **kwargs)
-
-        self._collection.flush()
-
-        return self._update_delete_result_to_dict(result=result)
+        raise NotImplementedError("Update operation is not supported in FAISS")
 
     def delete_by_keys(self, keys: int | str | list, **kwargs: dict[str, typing.Any]) -> typing.Any:
         """
@@ -453,10 +207,7 @@ class MilvusVectorDBResourceService(VectorDBResourceService):
         typing.Any
             Returns result of the given keys that are deleted from the collection.
         """
-
-        result = self._client.delete(collection_name=self._name, pks=keys, **kwargs)
-
-        return result
+        raise NotImplementedError("Delete by keys operation is not supported in FAISS")
 
     def delete(self, expr: str, **kwargs: dict[str, typing.Any]) -> dict[str, typing.Any]:
         """
@@ -474,10 +225,7 @@ class MilvusVectorDBResourceService(VectorDBResourceService):
         dict[str, typing.Any]
             Returns result of the given keys that are deleted from the collection.
         """
-
-        result = self._client.delete_by_expr(collection_name=self._name, expression=expr, **kwargs)
-
-        return self._update_delete_result_to_dict(result=result)
+        raise NotImplementedError("Delete operation is not supported in FAISS")
 
     def retrieve_by_keys(self, keys: int | str | list, **kwargs: dict[str, typing.Any]) -> list[typing.Any]:
         """
@@ -496,15 +244,7 @@ class MilvusVectorDBResourceService(VectorDBResourceService):
         list[typing.Any]
             Returns result rows of the given keys from the collection.
         """
-
-        result = None
-
-        try:
-            result = self._client.get(collection_name=self._name, ids=keys, **kwargs)
-        except pymilvus.exceptions.MilvusException as exec_info:
-            raise RuntimeError(f"Unable to perform search: {exec_info}") from exec_info
-
-        return result
+        raise NotImplementedError("Retrieve by keys operation is not supported in FAISS")
 
     def count(self, **kwargs: dict[str, typing.Any]) -> int:
         """
@@ -520,7 +260,7 @@ class MilvusVectorDBResourceService(VectorDBResourceService):
         int
             Returns number of entities in the collection.
         """
-        return self._collection.num_entities
+        raise NotImplementedError("Count operation is not supported in FAISS")
 
     def drop(self, **kwargs: dict[str, typing.Any]) -> None:
         """
@@ -533,36 +273,10 @@ class MilvusVectorDBResourceService(VectorDBResourceService):
         **kwargs : dict
             Additional keyword arguments for specifying the type and partition name (if applicable).
         """
-
-        self._collection.drop(**kwargs)
-
-    def _insert_result_to_dict(self, result: "MutationResult") -> dict[str, typing.Any]:
-        result_dict = {
-            "primary_keys": result.primary_keys,
-            "insert_count": result.insert_count,
-            "delete_count": result.delete_count,
-            "upsert_count": result.upsert_count,
-            "timestamp": result.timestamp,
-            "succ_count": result.succ_count,
-            "err_count": result.err_count,
-            "succ_index": result.succ_index,
-            "err_index": result.err_index
-        }
-        return result_dict
-
-    def _update_delete_result_to_dict(self, result: "MutationResult") -> dict[str, typing.Any]:
-        result_dict = {
-            "insert_count": result.insert_count,
-            "delete_count": result.delete_count,
-            "upsert_count": result.upsert_count,
-            "timestamp": result.timestamp,
-            "succ_count": result.succ_count,
-            "err_count": result.err_count
-        }
-        return result_dict
+        raise NotImplementedError("Drop operation is not supported in FAISS")
 
 
-class MilvusVectorDBService(VectorDBService):
+class FaissVectorDBService(VectorDBService):
     """
     Service class for Milvus Vector Database implementation. This class provides functions for interacting
     with a Milvus vector database.
@@ -583,19 +297,17 @@ class MilvusVectorDBService(VectorDBService):
     _cleanup_interval = 600  # 10mins
     _last_cleanup_time = time.time()
 
-    def __init__(self,
-                 uri: str,
-                 user: str = "",
-                 password: str = "",
-                 db_name: str = "",
-                 token: str = "",
-                 **kwargs):
+    def __init__(self, local_dir: str, embeddings, **kwargs: dict[str, typing.Any]):
 
-        self._client = MilvusClient(uri=uri, user=user, password=password, db_name=db_name, token=token, **kwargs)
+        if IMPORT_EXCEPTION is not None:
+            raise ImportError(IMPORT_ERROR_MESSAGE) from IMPORT_EXCEPTION
 
-    def load_resource(self, name: str, **kwargs: dict[str, typing.Any]) -> MilvusVectorDBResourceService:
+        self._local_dir = local_dir
+        self._embeddings = embeddings
 
-        return MilvusVectorDBResourceService(name=name, client=self._client, **kwargs)
+    def load_resource(self, name: str = "index", **kwargs: dict[str, typing.Any]) -> FaissVectorDBResourceService:
+
+        return FaissVectorDBResourceService(self, name=name, **kwargs)
 
     def has_store_object(self, name: str) -> bool:
         """
@@ -630,7 +342,6 @@ class MilvusVectorDBService(VectorDBService):
 
         return field_schema
 
-    @with_collection_lock
     def create(self, name: str, overwrite: bool = False, **kwargs: dict[str, typing.Any]):
         """
         Create a collection in the Milvus vector database with the specified name and configuration. This method
@@ -688,42 +399,6 @@ class MilvusVectorDBService(VectorDBService):
                 for part in partition_conf["partitions"]:
                     self._client.create_partition(collection_name=name, partition_name=part["name"], timeout=timeout)
 
-    def _build_schema_conf(self, df: typing.Union[cudf.DataFrame, pd.DataFrame]) -> list[dict]:
-        fields = []
-
-        # Always add a primary key
-        fields.append({"name": "pk", "dtype": pymilvus.DataType.INT64, "is_primary": True, "auto_id": True})
-
-        if isinstance(df, cudf.DataFrame):
-            df = df.to_pandas()
-
-        # Loop over all of the columns of the first row and build the schema
-        for col_name, col_val in df.iloc[0].items():
-
-            field_dict = {
-                "name": col_name,
-                "dtype": pymilvus.orm.types.infer_dtype_bydata(col_val),
-                # "is_primary": col_name == kwargs.get("primary_key", None),
-                # "auto_id": col_name == kwargs.get("primary_key", None)
-            }
-
-            if (field_dict["dtype"] == pymilvus.DataType.VARCHAR):
-                field_dict["max_length"] = 65_535
-
-            if (field_dict["dtype"] == pymilvus.DataType.FLOAT_VECTOR
-                    or field_dict["dtype"] == pymilvus.DataType.BINARY_VECTOR):
-                field_dict["params"] = {"dim": len(col_val)}
-
-            if (field_dict["dtype"] == pymilvus.DataType.UNKNOWN):
-                logger.warning("Could not infer data type for column '%s', with value: %s. Skipping column in schema.",
-                               col_name,
-                               col_val)
-                continue
-
-            fields.append(field_dict)
-
-        return fields
-
     def create_from_dataframe(self,
                               name: str,
                               df: typing.Union[cudf.DataFrame, pd.DataFrame],
@@ -767,7 +442,6 @@ class MilvusVectorDBService(VectorDBService):
 
         self.create(name=name, overwrite=overwrite, **create_kwargs)
 
-    @with_collection_lock
     def insert(self, name: str, data: list[list] | list[dict], **kwargs: dict[str,
                                                                               typing.Any]) -> dict[str, typing.Any]:
         """
@@ -796,7 +470,6 @@ class MilvusVectorDBService(VectorDBService):
         resource = self.load_resource(name)
         return resource.insert(data, **kwargs)
 
-    @with_collection_lock
     def insert_dataframe(self,
                          name: str,
                          df: typing.Union[cudf.DataFrame, pd.DataFrame],
@@ -827,7 +500,6 @@ class MilvusVectorDBService(VectorDBService):
 
         return resource.insert_dataframe(df=df, **kwargs)
 
-    @with_collection_lock
     def query(self, name: str, query: str = None, **kwargs: dict[str, typing.Any]) -> typing.Any:
         """
         Query data in a collection in the Milvus vector database.
@@ -874,7 +546,6 @@ class MilvusVectorDBService(VectorDBService):
 
         return resource.similarity_search(**kwargs)
 
-    @with_collection_lock
     def update(self, name: str, data: list[typing.Any], **kwargs: dict[str, typing.Any]) -> dict[str, typing.Any]:
         """
         Update data in the vector database.
@@ -901,7 +572,6 @@ class MilvusVectorDBService(VectorDBService):
 
         return resource.update(data=data, **kwargs)
 
-    @with_collection_lock
     def delete_by_keys(self, name: str, keys: int | str | list, **kwargs: dict[str, typing.Any]) -> typing.Any:
         """
         Delete vectors by keys from the collection.
@@ -925,7 +595,6 @@ class MilvusVectorDBService(VectorDBService):
 
         return resource.delete_by_keys(keys=keys, **kwargs)
 
-    @with_collection_lock
     def delete(self, name: str, expr: str, **kwargs: dict[str, typing.Any]) -> dict[str, typing.Any]:
         """
         Delete vectors from the collection using expressions.
@@ -950,7 +619,6 @@ class MilvusVectorDBService(VectorDBService):
 
         return result
 
-    @with_collection_lock
     def retrieve_by_keys(self, name: str, keys: int | str | list, **kwargs: dict[str, typing.Any]) -> list[typing.Any]:
         """
         Retrieve the inserted vectors using their primary keys from the Collection.
@@ -1095,36 +763,3 @@ class MilvusVectorDBService(VectorDBService):
 
         """
         self._client.close()
-
-    @classmethod
-    def get_collection_lock(cls, name: str) -> threading.Lock:
-        """
-        Get a lock for a given collection name.
-
-        Parameters
-        ----------
-        name : str
-            Name of the collection for which to acquire the lock.
-
-        Returns
-        -------
-        threading.Lock
-            A thread lock specific to the given collection name.
-        """
-
-        current_time = time.time()
-
-        if name not in cls._collection_locks:
-            cls._collection_locks[name] = {"lock": threading.Lock(), "last_used": current_time}
-        else:
-            cls._collection_locks[name]["last_used"] = current_time
-
-        if (current_time - cls._last_cleanup_time) >= cls._cleanup_interval:
-            for lock_name, lock_info in cls._collection_locks.copy().items():
-                last_used = lock_info["last_used"]
-                if current_time - last_used >= cls._cleanup_interval:
-                    logger.debug("Cleaning up lock for collection: %s", lock_name)
-                    del cls._collection_locks[lock_name]
-            cls._last_cleanup_time = current_time
-
-        return cls._collection_locks[name]["lock"]
