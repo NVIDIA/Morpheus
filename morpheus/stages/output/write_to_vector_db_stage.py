@@ -25,7 +25,8 @@ from morpheus.messages.multi_message import MultiMessage
 from morpheus.modules.output.write_to_vector_db import WriteToVectorDBLoaderFactory
 from morpheus.pipeline.pass_thru_type_mixin import PassThruTypeMixin
 from morpheus.pipeline.single_port_stage import SinglePortStage
-from morpheus.service.vdb.vector_db_service import VectorDBService
+from morpheus.service.vdb.vector_db_service import VectorDbServiceProvider
+from morpheus.service.vdb.utils import VectorDBServiceProviderFactory
 from morpheus.utils.module_utils import ModuleLoader
 
 logger = logging.getLogger(__name__)
@@ -55,18 +56,16 @@ class WriteToVectorDBStage(PassThruTypeMixin, SinglePortStage):
     write_time_interval : float
         Specifies the time interval (in seconds) for writing messages, or writing messages
         when the accumulated batch size is reached.
-    **service_kwargs : dict
-        Additional keyword arguments to pass when creating a VectorDBService instance.
 
     Raises
     ------
     ValueError
-        If `service` is not a valid string (service name) or an instance of VectorDBService.
+        If `service` is not a valid string (service name) or an instance of VectorDbServiceProvider.
     """
 
     def __init__(self,
                  config: Config,
-                 service: typing.Union[str, VectorDBService],
+                 service: typing.Union[str, VectorDbServiceProvider],
                  resource_name: str,
                  embedding_column_name: str = "embedding",
                  recreate: bool = False,
@@ -80,21 +79,18 @@ class WriteToVectorDBStage(PassThruTypeMixin, SinglePortStage):
 
         resource_kwargs = resource_kwargs if resource_kwargs is not None else {}
         resource_schemas = resource_schemas if resource_schemas is not None else {}
-        is_service_serialized = False
-        if isinstance(service, VectorDBService):
-            service = str(pickle.dumps(service), encoding="latin1")
-            is_service_serialized = True
+
+        if isinstance(service, str):
+            service = VectorDBServiceProviderFactory.create_instance(service, **service_kwargs)
 
         module_config = {
             "batch_size": batch_size,
             "default_resource_name": resource_name,
             "embedding_column_name": embedding_column_name,
-            "is_service_serialized": is_service_serialized,
             "recreate": recreate,
             "resource_kwargs": resource_kwargs,
             "resource_schemas": resource_schemas,
-            "service_kwargs": service_kwargs,
-            "service": service,
+            "service_provider": str(pickle.dumps(service), encoding="latin1"),
             "write_time_interval": write_time_interval
         }
 

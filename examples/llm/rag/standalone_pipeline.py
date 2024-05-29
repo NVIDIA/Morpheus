@@ -30,6 +30,7 @@ from morpheus.stages.llm.llm_engine_stage import LLMEngineStage
 from morpheus.stages.output.in_memory_sink_stage import InMemorySinkStage
 from morpheus.stages.preprocess.deserialize_stage import DeserializeStage
 from morpheus.utils.concat_df import concat_dataframes
+from morpheus.service.vdb.milvus_vector_db_service import MilvusVectorDBService
 
 from ..common.utils import build_huggingface_embeddings
 from ..common.utils import build_llm_service
@@ -38,7 +39,7 @@ from ..common.utils import build_milvus_service
 logger = logging.getLogger(__name__)
 
 
-def _build_engine(model_name: str, vdb_resource_name: str, llm_service: str, embedding_size: int):
+def _build_engine(milvus_service: MilvusVectorDBService, model_name: str, vdb_resource_name: str, llm_service: str, embedding_size: int):
 
     engine = LLMEngine()
 
@@ -65,7 +66,6 @@ Data: {{ c.data }}
 
 Please answer the following question: \n{{ query }}"""
 
-    vector_service = build_milvus_service(embedding_size)
     embeddings = build_huggingface_embeddings("sentence-transformers/all-MiniLM-L6-v2",
                                               model_kwargs={'device': 'cuda'},
                                               encode_kwargs={'batch_size': 100})
@@ -79,7 +79,7 @@ Please answer the following question: \n{{ query }}"""
     engine.add_node("rag",
                     inputs=["/extracter"],
                     node=RAGNode(prompt=prompt,
-                                 vdb_service=vector_service.load_resource(vdb_resource_name),
+                                 vdb_service=milvus_service.load_resource(vdb_resource_name),
                                  embedding=calc_embeddings,
                                  llm_client=llm_service))
 
@@ -119,9 +119,12 @@ def standalone(num_threads,
 
     pipe.add_stage(MonitorStage(config, description="Source rate", unit='questions'))
 
+    milvus_service = build_milvus_service(embedding_size)
+
     pipe.add_stage(
         LLMEngineStage(config,
-                       engine=_build_engine(model_name=model_name,
+                       engine=_build_engine(milvus_service=milvus_service,
+                                            model_name=model_name,
                                             vdb_resource_name=vdb_resource_name,
                                             llm_service=llm_service,
                                             embedding_size=embedding_size)))
@@ -133,6 +136,8 @@ def standalone(num_threads,
     start_time = time.time()
 
     pipe.run()
+
+    milvus_service.close()
 
     messages = sink.get_messages()
     responses = concat_dataframes(messages)

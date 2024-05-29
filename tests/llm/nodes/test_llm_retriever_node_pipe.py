@@ -27,17 +27,16 @@ from morpheus.llm.task_handlers.simple_task_handler import SimpleTaskHandler
 from morpheus.messages import ControlMessage
 from morpheus.pipeline.linear_pipeline import LinearPipeline
 from morpheus.service.vdb.milvus_vector_db_service import MilvusVectorDBResourceService
-from morpheus.service.vdb.milvus_vector_db_service import MilvusVectorDBService
+from morpheus.service.vdb.milvus_vector_db_service import MilvusVectorDBServiceProvider
 from morpheus.stages.input.in_memory_source_stage import InMemorySourceStage
 from morpheus.stages.llm.llm_engine_stage import LLMEngineStage
 from morpheus.stages.output.in_memory_sink_stage import InMemorySinkStage
 from morpheus.stages.preprocess.deserialize_stage import DeserializeStage
 
 
-@pytest.fixture(scope="module", name="milvus_service")
+@pytest.fixture(scope="module", name="milvus_provider")
 def milvus_service_fixture(milvus_server_uri: str):
-    service = MilvusVectorDBService(uri=milvus_server_uri)
-    yield service
+    yield MilvusVectorDBServiceProvider(uri=milvus_server_uri)
 
 
 def _build_engine(vdb_service, **similarity_search_kwargs) -> LLMEngine:
@@ -84,12 +83,13 @@ def test_pipeline(config: Config):
 
 @pytest.mark.milvus
 def test_pipeline_with_milvus(config: Config,
-                              milvus_service: MilvusVectorDBService,
+                              milvus_provider: MilvusVectorDBServiceProvider,
                               idx_part_collection_config: dict,
                               milvus_data: list[dict]):
 
     collection_name = "test_retriever_node_collection"
     # Make sure to drop any existing collection from previous runs.
+    milvus_service = milvus_provider.create()
     milvus_service.drop(collection_name)
     # Create a collection.
     milvus_service.create(collection_name, **idx_part_collection_config)
@@ -115,6 +115,8 @@ def test_pipeline_with_milvus(config: Config,
     sink = pipe.add_stage(InMemorySinkStage(config))
 
     pipe.run()
+
+    milvus_service.close()
 
     message = sink.get_messages()[0]
     assert isinstance(message, ControlMessage)

@@ -74,13 +74,13 @@ def validate_service(service_name: str):
     return service_name
 
 
-class VectorDBServiceFactory:
+class VectorDBServiceProviderFactory:
 
     @typing.overload
     @classmethod
     def create_instance(
             cls, service_name: typing.Literal["milvus"], *args: typing.Any,
-            **kwargs: dict[str, typing.Any]) -> "morpheus.service.vdb.milvus_vector_db_service.MilvusVectorDBService":
+            **kwargs: dict[str, typing.Any]) -> "morpheus.service.vdb.milvus_vector_db_service.MilvusVectorDBServiceProvider":
         pass
 
     @classmethod
@@ -111,7 +111,7 @@ class VectorDBServiceFactory:
         """
         module_name = f"morpheus.service.vdb.{service_name}_vector_db_service"
         module = importlib.import_module(module_name)
-        class_name = f"{service_name.capitalize()}VectorDBService"
+        class_name = f"{service_name.capitalize()}VectorDBServiceProvider"
         class_ = getattr(module, class_name)
         instance = class_(*args, **kwargs)
         return instance

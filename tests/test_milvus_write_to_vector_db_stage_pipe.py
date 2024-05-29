@@ -27,7 +27,7 @@ from morpheus.messages.multi_message import MultiMessage
 from morpheus.messages.multi_response_message import MultiResponseMessage
 from morpheus.modules import to_control_message  # noqa: F401 # pylint: disable=unused-import
 from morpheus.pipeline import LinearPipeline
-from morpheus.service.vdb.milvus_vector_db_service import MilvusVectorDBService
+from morpheus.service.vdb.milvus_vector_db_service import MilvusVectorDBServiceProvider
 from morpheus.stages.general.linear_modules_stage import LinearModulesStage
 from morpheus.stages.input.in_memory_source_stage import InMemorySourceStage
 from morpheus.stages.output.in_memory_sink_stage import InMemorySinkStage
@@ -65,12 +65,14 @@ def test_write_to_vector_db_stage_from_cm_pipe(milvus_server_uri: str,
 
     df = get_test_df(num_input_rows)
 
-    milvus_service = MilvusVectorDBService(uri=milvus_server_uri)
+    milvus_provider = MilvusVectorDBServiceProvider(uri=milvus_server_uri)
+    milvus_service = milvus_provider.create()
 
     # Make sure to drop any existing collection from previous runs.
     milvus_service.drop(collection_name)
     # Create milvus collection using config file.
     milvus_service.create(name=collection_name, overwrite=True, **idx_part_collection_config)
+    milvus_service.close()
 
     if recreate:
         # Update resource kwargs with collection configuration if recreate is True
@@ -88,14 +90,14 @@ def test_write_to_vector_db_stage_from_cm_pipe(milvus_server_uri: str,
                            input_port_name="input",
                            output_port_name="output",
                            output_type=ControlMessage))
-
+    
     # Provide partition name in the resource_kwargs to insert data into the partition
     # otherwise goes to '_default' partition.
     if use_instance:
         # Instantiate stage with service instance and insert options.
         write_to_vdb_stage = WriteToVectorDBStage(config,
                                                   resource_name=collection_name,
-                                                  service=milvus_service,
+                                                  service=milvus_provider,
                                                   recreate=recreate,
                                                   resource_kwargs=resource_kwargs)
     else:
@@ -144,10 +146,12 @@ def test_write_to_vector_db_stage_from_mm_pipe(milvus_server_uri: str,
 
     df = get_test_df(num_input_rows=10)
 
-    milvus_service = MilvusVectorDBService(uri=milvus_server_uri)
+    milvus_provider = MilvusVectorDBServiceProvider(uri=milvus_server_uri)
+    milvus_service = milvus_provider.create()
 
     # Make sure to drop any existing collection from previous runs.
     milvus_service.drop(collection_name)
+    milvus_service.close()
 
     resource_kwargs = {"partition_name": "age_partition"}
 
@@ -163,7 +167,7 @@ def test_write_to_vector_db_stage_from_mm_pipe(milvus_server_uri: str,
     pipe.add_stage(
         WriteToVectorDBStage(config,
                              resource_name=collection_name,
-                             service=milvus_service,
+                             service=milvus_provider,
                              recreate=True,
                              resource_kwargs=resource_kwargs))
 

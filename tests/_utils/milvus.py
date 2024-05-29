@@ -16,7 +16,7 @@
 
 import cudf
 
-from morpheus.service.vdb.milvus_vector_db_service import MilvusVectorDBService
+from morpheus.service.vdb.milvus_vector_db_service import MilvusVectorDBServiceProvider
 
 
 def populate_milvus(milvus_server_uri: str,
@@ -24,7 +24,9 @@ def populate_milvus(milvus_server_uri: str,
                     resource_kwargs: dict,
                     df: cudf.DataFrame,
                     overwrite: bool = False):
-    milvus_service = MilvusVectorDBService(uri=milvus_server_uri)
+    milvus_provider = MilvusVectorDBServiceProvider(uri=milvus_server_uri)
+    milvus_service = milvus_provider.create()
     milvus_service.create(collection_name, overwrite=overwrite, **resource_kwargs)
     resource_service = milvus_service.load_resource(name=collection_name)
     resource_service.insert_dataframe(name=collection_name, df=df, **resource_kwargs)
+    milvus_service.close()

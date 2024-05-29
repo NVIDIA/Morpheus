@@ -35,6 +35,7 @@ from morpheus.stages.input.rss_source_stage import RSSSourceStage
 from morpheus.stages.output.write_to_vector_db_stage import WriteToVectorDBStage
 from morpheus.stages.preprocess.deserialize_stage import DeserializeStage
 from morpheus.stages.preprocess.preprocess_nlp_stage import PreprocessNLPStage
+from morpheus.service.vdb.milvus_vector_db_service import MilvusVectorDBServiceProvider
 
 EMBEDDING_SIZE = 384
 MODEL_MAX_BATCH_SIZE = 64
@@ -81,8 +82,7 @@ def _run_pipeline(config: Config,
                              resource_name=collection_name,
                              resource_kwargs=utils_mod.build_milvus_config(embedding_size=EMBEDDING_SIZE),
                              recreate=True,
-                             service="milvus",
-                             uri=milvus_server_uri))
+                             service_provider=MilvusVectorDBServiceProvider(uri=milvus_server_uri)))
     pipe.run()
 
 

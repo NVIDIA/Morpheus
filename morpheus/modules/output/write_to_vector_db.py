@@ -29,8 +29,7 @@ from morpheus.messages import MultiMessage
 from morpheus.messages import MultiResponseMessage
 from morpheus.modules.schemas.write_to_vector_db_schema import WriteToVDBSchema
 from morpheus.service.vdb.milvus_client import DATA_TYPE_MAP
-from morpheus.service.vdb.utils import VectorDBServiceFactory
-from morpheus.service.vdb.vector_db_service import VectorDBService
+from morpheus.service.vdb.vector_db_service import VectorDbServiceProvider
 from morpheus.utils.module_ids import MORPHEUS_MODULE_NAMESPACE
 from morpheus.utils.module_ids import WRITE_TO_VECTOR_DB
 from morpheus.utils.module_utils import ModuleLoaderFactory
@@ -91,12 +90,10 @@ def _write_to_vector_db(builder: mrc.Builder):
     The `module_config` should contain:
     - 'embedding_column_name': str, the name of the column containing embeddings (default is "embedding").
     - 'recreate': bool, whether to recreate the resource if it already exists (default is False).
-    - 'service': str, the name of the service or a serialized instance of VectorDBService.
-    - 'is_service_serialized': bool, whether the provided service is serialized (default is False).
+    - 'service': instance of VectorDbServiceProvider.
     - 'default_resource_name': str, the name of the collection resource (must not be None or empty).
     - 'resource_kwargs': dict, additional keyword arguments for resource creation.
     - 'resource_schemas': dict, additional keyword arguments for resource creation.
-    - 'service_kwargs': dict, additional keyword arguments for VectorDBService creation.
     - 'batch_size': int, accumulates messages until reaching the specified batch size for writing to VDB.
     - 'write_time_interval': float, specifies the time interval (in seconds) for writing messages, or writing messages
     when the accumulated batch size is reached.
@@ -122,19 +119,16 @@ def _write_to_vector_db(builder: mrc.Builder):
 
     embedding_column_name = write_to_vdb_config.embedding_column_name
     recreate = write_to_vdb_config.recreate
-    service = write_to_vdb_config.service
-    is_service_serialized = write_to_vdb_config.is_service_serialized
+    service_provider = write_to_vdb_config.service_provider
     default_resource_name = write_to_vdb_config.default_resource_name
     resource_kwargs = write_to_vdb_config.resource_kwargs
     resource_schemas = write_to_vdb_config.resource_schemas
-    service_kwargs = write_to_vdb_config.service_kwargs
     batch_size = write_to_vdb_config.batch_size
     write_time_interval = write_to_vdb_config.write_time_interval
 
-    # Check if service is serialized and convert if needed
-    # pylint: disable=not-a-mapping
-    service: VectorDBService = (pickle.loads(bytes(service, "latin1")) if is_service_serialized else
-                                VectorDBServiceFactory.create_instance(service_name=service, **service_kwargs))
+    service_provider: VectorDbServiceProvider = pickle.loads(bytes(service_provider, "latin1"))
+    
+    service = service_provider.create()
 
     preprocess_vdb_resources(service, recreate, resource_schemas)
 
@@ -148,7 +142,8 @@ def _write_to_vector_db(builder: mrc.Builder):
             try:
                 if accum_stats.data:
                     merged_df = cudf.concat(accum_stats.data)
-                    service.insert_dataframe(name=key, df=merged_df)
+                    collection = service.load_resource(name=key)
+                    collection.insert_dataframe(df=merged_df)
                     final_df_references.append(accum_stats.data)
             except Exception as e:
                 logger.error("Unable to upload dataframe entries to vector database: %s", e)
@@ -213,7 +208,8 @@ def _write_to_vector_db(builder: mrc.Builder):
                             merged_df = cudf.concat(accum_stats.data)
 
                             # pylint: disable=not-a-mapping
-                            service.insert_dataframe(name=key, df=merged_df, **resource_kwargs)
+                            collection = service.load_resource(name=key)
+                            collection.insert_dataframe(df=merged_df, **resource_kwargs)
                             # Reset accumulator stats
                             accum_stats.data.clear()
                             accum_stats.last_insert_time = current_time

@@ -30,19 +30,17 @@ WriteToVectorDBLoaderFactory = ModuleLoaderFactory(WRITE_TO_VECTOR_DB, MORPHEUS_
 class WriteToVDBSchema(BaseModel):
     embedding_column_name: str = "embedding"
     recreate: bool = False
-    service: str = Field(default_factory=None)
-    is_service_serialized: bool = False
+    service_provider: str = Field(default_factory=None)
     default_resource_name: str = Field(default_factory=None)
     resource_schemas: dict = Field(default_factory=dict)
     resource_kwargs: dict = Field(default_factory=dict)
-    service_kwargs: dict = Field(default_factory=dict)
     batch_size: int = 1024
     write_time_interval: float = 1.0
 
-    @validator('service', pre=True)
+    @validator('service_provider', pre=True)
     def validate_service(cls, to_validate):  # pylint: disable=no-self-argument
         if not to_validate:
-            raise ValueError("Service must be a service name or a serialized instance of VectorDBService")
+            raise ValueError("Service must be an instance of VectorDbServiceProvider")
         return to_validate
 
     @validator('default_resource_name', pre=True)

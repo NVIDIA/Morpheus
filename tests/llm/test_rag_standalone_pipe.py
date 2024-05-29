@@ -39,6 +39,7 @@ from morpheus.stages.input.in_memory_source_stage import InMemorySourceStage
 from morpheus.stages.llm.llm_engine_stage import LLMEngineStage
 from morpheus.stages.output.compare_dataframe_stage import CompareDataFrameStage
 from morpheus.stages.preprocess.deserialize_stage import DeserializeStage
+from morpheus.service.vdb.milvus_vector_db_service import MilvusVectorDBService
 
 EMBEDDING_SIZE = 384
 QUESTION = "What are some new attacks discovered in the cyber security industry?"
@@ -53,15 +54,14 @@ Please answer the following question: \n{{ query }}"""
 EXPECTED_RESPONSE = "Ransomware, Phishing, Malware, Denial of Service, SQL injection, and Password Attacks"
 
 
-def _build_engine(llm_service_name: str,
+def _build_engine(milvus_service: MilvusVectorDBService,
+                  llm_service_name: str,
                   model_name: str,
-                  milvus_server_uri: str,
                   collection_name: str,
                   utils_mod: types.ModuleType):
     engine = LLMEngine()
     engine.add_node("extracter", node=ExtracterNode())
 
-    vector_service = utils_mod.build_milvus_service(embedding_size=EMBEDDING_SIZE, uri=milvus_server_uri)
     embeddings = utils_mod.build_huggingface_embeddings("sentence-transformers/all-MiniLM-L6-v2",
                                                         model_kwargs={'device': 'cuda'},
                                                         encode_kwargs={'batch_size': 100})
@@ -78,7 +78,7 @@ def _build_engine(llm_service_name: str,
     engine.add_node("rag",
                     inputs=["/extracter"],
                     node=RAGNode(prompt=PROMPT,
-                                 vdb_service=vector_service.load_resource(collection_name),
+                                 vdb_service=milvus_service.load_resource(collection_name),
                                  embedding=calc_embeddings,
                                  llm_client=llm_service))
 
@@ -110,17 +110,21 @@ def _run_pipeline(config: Config,
 
     pipe.add_stage(
         DeserializeStage(config, message_type=ControlMessage, task_type="llm_engine", task_payload=completion_task))
+    
+    milvus_service = utils_mod.build_milvus_service(embedding_size=EMBEDDING_SIZE, uri=milvus_server_uri)
 
     pipe.add_stage(
         LLMEngineStage(config,
-                       engine=_build_engine(llm_service_name=llm_service_name,
+                       engine=_build_engine(milvus_service=milvus_service,
+                                            llm_service_name=llm_service_name,
                                             model_name=model_name,
-                                            milvus_server_uri=milvus_server_uri,
                                             collection_name=collection_name,
                                             utils_mod=utils_mod)))
     sink = pipe.add_stage(CompareDataFrameStage(config, compare_df=expected_df))
 
     pipe.run()
+
+    vector_service.close()
 
     return sink.get_results()
 

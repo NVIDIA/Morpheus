@@ -21,8 +21,7 @@ from morpheus.llm.services.llm_service import LLMService
 from morpheus.llm.services.nemo_llm_service import NeMoLLMService
 from morpheus.llm.services.openai_chat_service import OpenAIChatService
 from morpheus.service.vdb.milvus_client import DATA_TYPE_MAP
-from morpheus.service.vdb.milvus_vector_db_service import MilvusVectorDBService
-from morpheus.service.vdb.utils import VectorDBServiceFactory
+from morpheus.service.vdb.milvus_vector_db_service import MilvusVectorDBServiceProvider
 
 logger = logging.getLogger(__name__)
 
@@ -109,9 +108,7 @@ def build_default_milvus_config(embedding_size: int):
     return milvus_resource_kwargs
 
 
-def build_milvus_service(embedding_size: int, uri: str = "http://localhost:19530"):
+def build_milvus_service(embedding_size: int, uri: str = "http://172.18.0.4:19530"):
     default_service = build_default_milvus_config(embedding_size)
-
-    vdb_service: MilvusVectorDBService = VectorDBServiceFactory.create_instance("milvus", uri=uri, **default_service)
-
-    return vdb_service
+    milvus_provider = MilvusVectorDBServiceProvider(uri=uri, **default_service)
+    return milvus_provider.create()

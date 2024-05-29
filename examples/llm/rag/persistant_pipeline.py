@@ -194,4 +194,6 @@ def pipeline(num_threads, pipeline_batch_size, model_max_batch_size, embedding_s
     # Run the pipeline
     pipe.run()
 
+    vdb_service.close()
+
     return start_time

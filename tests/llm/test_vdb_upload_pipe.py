@@ -27,7 +27,7 @@ from _utils import TEST_DIRS
 from _utils import mk_async_infer
 from _utils.dataset_manager import DatasetManager
 from morpheus.config import Config
-from morpheus.service.vdb.milvus_vector_db_service import MilvusVectorDBService
+from morpheus.service.vdb.milvus_vector_db_service import MilvusVectorDBServiceProvider
 
 
 @pytest.mark.milvus
@@ -133,7 +133,8 @@ def test_vdb_upload_pipe(mock_triton_client: mock.MagicMock,
 
     vdb_upload_pipeline_mod.pipeline(**vdb_pipeline_config)
 
-    milvus_service = MilvusVectorDBService(uri=milvus_server_uri)
+    milvus_provider = MilvusVectorDBServiceProvider(uri=milvus_server_uri)
+    milvus_service = milvus_provider.create()
     resource_service = milvus_service.load_resource(name=collection_name)
 
     assert resource_service.count() == len(expected_values_df)
@@ -150,3 +151,5 @@ def test_vdb_upload_pipe(mock_triton_client: mock.MagicMock,
         db_emb_row = pd.DataFrame(db_emb[i], dtype=np.float32)
         expected_emb_row = pd.DataFrame(expected_emb[i], dtype=np.float32)
         dataset.assert_compare_df(db_emb_row, expected_emb_row)
+
+    milvus_service.close()
