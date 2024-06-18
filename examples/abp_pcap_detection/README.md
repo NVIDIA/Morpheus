@@ -23,13 +23,13 @@ To run this example, an instance of Triton Inference Server and a sample dataset
 
 ### Triton Inference Server
 ```bash
-docker pull nvcr.io/nvidia/tritonserver:23.06-py3
+docker pull nvcr.io/nvidia/tritonserver:24.04-py3
 ```
 
 ##### Deploy Triton Inference Server
 From the root of the Morpheus repo, run the following to launch Triton and load the `abp-pcap-xgb` model:
 ```bash
-docker run --rm --gpus=all -p 8000:8000 -p 8001:8001 -p 8002:8002 -v $PWD/examples/abp_pcap_detection/abp-pcap-xgb:/models/abp-pcap-xgb --name tritonserver nvcr.io/nvidia/tritonserver:23.06-py3 tritonserver --model-repository=/models --exit-on-error=false
+docker run --rm --gpus=all -p 8000:8000 -p 8001:8001 -p 8002:8002 -v $PWD/examples/abp_pcap_detection/abp-pcap-xgb:/models/abp-pcap-xgb --name tritonserver nvcr.io/nvidia/tritonserver:24.04-py3 tritonserver --model-repository=/models --exit-on-error=false
 ```
 
 ##### Verify Model Deployment

@@ -130,12 +130,12 @@ To retrieve models from LFS run the following:
 
 - Pull the Docker image for Triton:
   ```bash
-  docker pull nvcr.io/nvidia/tritonserver:23.06-py3
+  docker pull nvcr.io/nvidia/tritonserver:24.04-py3
   ```
 
 - From the Morpheus repo root directory, run the following to launch Triton and load the `all-MiniLM-L6-v2` model:
   ```bash
-  docker run --rm -ti --gpus=all -p8000:8000 -p8001:8001 -p8002:8002 -v $PWD/models:/models nvcr.io/nvidia/tritonserver:23.06-py3 tritonserver --model-repository=/models/triton-model-repo --exit-on-error=false --model-control-mode=explicit --load-model all-MiniLM-L6-v2
+  docker run --rm -ti --gpus=all -p8000:8000 -p8001:8001 -p8002:8002 -v $PWD/models:/models nvcr.io/nvidia/tritonserver:24.04-py3 tritonserver --model-repository=/models/triton-model-repo --exit-on-error=false --model-control-mode=explicit --load-model all-MiniLM-L6-v2
   ```
 
   This will launch Triton and only load the `all-MiniLM-L6-v2` model. Once Triton has loaded the model, the following
@@ -419,7 +419,7 @@ using `sentence-transformers/paraphrase-multilingual-mpnet-base-v2` as an exampl
     - Reload the docker container, specifying that we also need to load paraphrase-multilingual-mpnet-base-v2
     ```bash
     docker run --rm -ti --gpus=all -p8000:8000 -p8001:8001 -p8002:8002 \
-     -v $PWD/models:/models nvcr.io/nvidia/tritonserver:23.06-py3 tritonserver \
+     -v $PWD/models:/models nvcr.io/nvidia/tritonserver:24.04-py3 tritonserver \
      --model-repository=/models/triton-model-repo --exit-on-error=false --model-control-mode=explicit  --load-model \
      all-MiniLM-L6-v2 --load-model sentence-transformers/paraphrase-multilingual-mpnet-base-v2
     ```

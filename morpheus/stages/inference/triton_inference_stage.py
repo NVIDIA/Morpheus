@@ -804,9 +804,4 @@ class TritonInferenceStage(InferenceStage):
     def _build_single(self, builder: mrc.Builder, input_node: mrc.SegmentObject) -> mrc.SegmentObject:
         node = super()._build_single(builder, input_node)
 
-        # ensure that the C++ impl only uses a single progress engine
-        if (self._build_cpp_node()):
-            node.launch_options.pe_count = 1
-            node.launch_options.engines_per_pe = 1
-
         return node

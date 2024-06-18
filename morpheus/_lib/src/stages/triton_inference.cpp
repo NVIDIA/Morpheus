@@ -39,6 +39,7 @@
 #include <functional>
 #include <map>
 #include <memory>
+#include <mutex>
 #include <sstream>
 #include <stdexcept>  // for runtime_error, out_of_range
 #include <string>
@@ -136,76 +137,35 @@ struct TritonInferOperation
 
 namespace morpheus {
 
-HttpTritonClient::HttpTritonClient(std::string server_url)
+HttpTritonClient::HttpTritonClient(std::string server_url) : m_server_url(std::move(server_url))
 {
-    std::unique_ptr<triton::client::InferenceServerHttpClient> client;
-
-    CHECK_TRITON(triton::client::InferenceServerHttpClient::Create(&client, server_url, false));
-
-    bool is_server_live;
-
-    auto status = client->IsServerLive(&is_server_live);
-
-    if (not status.IsOk())
-    {
-        std::string new_server_url = server_url;
-        if (is_default_grpc_port(new_server_url))
-        {
-            LOG(WARNING) << "Failed to connect to Triton at '" << server_url
-                         << "'. Default gRPC port of (8001) was detected but C++ "
-                            "InferenceClientStage uses HTTP protocol. Retrying with default HTTP port (8000)";
-
-            // We are using the default gRPC port, try the default HTTP
-            std::unique_ptr<triton::client::InferenceServerHttpClient> unique_client;
-
-            CHECK_TRITON(triton::client::InferenceServerHttpClient::Create(&unique_client, new_server_url, false));
-
-            client = std::move(unique_client);
-
-            status = client->IsServerLive(&is_server_live);
-        }
-        else if (status.Message().find("Unsupported protocol") != std::string::npos)
-        {
-            throw std::runtime_error(MORPHEUS_CONCAT_STR(
-                "Failed to connect to Triton at '"
-                << server_url
-                << "'. Received 'Unsupported Protocol' error. Are you using the right port? The C++ "
-                   "InferenceClientStage uses Triton's HTTP protocol instead of gRPC. Ensure you have "
-                   "specified the HTTP port (Default 8000)."));
-        }
-
-        if (not status.IsOk())
-            throw std::runtime_error(
-                MORPHEUS_CONCAT_STR("Unable to connect to Triton at '"
-                                    << server_url << "'. Check the URL and port and ensure the server is running."));
-    }
-
-    m_client = std::move(client);
+    // Force the creation of the client
+    this->get_client();
 }
 
 triton::client::Error HttpTritonClient::is_server_live(bool* live)
 {
-    return m_client->IsServerLive(live);
+    return this->get_client().IsServerLive(live);
 }
 
 triton::client::Error HttpTritonClient::is_server_ready(bool* ready)
 {
-    return m_client->IsServerReady(ready);
+    return this->get_client().IsServerReady(ready);
 }
 
 triton::client::Error HttpTritonClient::is_model_ready(bool* ready, std::string& model_name)
 {
-    return m_client->IsModelReady(ready, model_name);
+    return this->get_client().IsModelReady(ready, model_name);
 }
 
 triton::client::Error HttpTritonClient::model_config(std::string* model_config, std::string& model_name)
 {
-    return m_client->ModelConfig(model_config, model_name);
+    return this->get_client().ModelConfig(model_config, model_name);
 }
 
 triton::client::Error HttpTritonClient::model_metadata(std::string* model_metadata, std::string& model_name)
 {
-    return m_client->ModelMetadata(model_metadata, model_name);
+    return this->get_client().ModelMetadata(model_metadata, model_name);
 }
 
 triton::client::Error HttpTritonClient::async_infer(triton::client::InferenceServerHttpClient::OnCompleteFn callback,
@@ -238,23 +198,15 @@ triton::client::Error HttpTritonClient::async_infer(triton::client::InferenceSer
         inference_outputs.emplace_back(inference_output_ptr);
     }
 
-    triton::client::InferResult* result;
-
-    auto status = m_client->Infer(&result, options, inference_input_ptrs, inference_output_ptrs);
-
-    callback(result);
-
-    return status;
-
     // TODO(cwharris): either fix tests or make this ENV-flagged, as AsyncInfer gives different results.
 
-    // return m_client->AsyncInfer(
-    //     [callback](triton::client::InferResult* result) {
-    //         callback(result);
-    //     },
-    //     options,
-    //     inference_input_ptrs,
-    //     inference_output_ptrs);
+    return this->get_client().AsyncInfer(
+        [callback](triton::client::InferResult* result) {
+            callback(result);
+        },
+        options,
+        inference_input_ptrs,
+        inference_output_ptrs);
 }
 
 TritonInferenceClientSession::TritonInferenceClientSession(std::shared_ptr<ITritonClient> client,
@@ -522,4 +474,66 @@ std::unique_ptr<IInferenceClientSession> TritonInferenceClient::create_session()
     return std::make_unique<TritonInferenceClientSession>(m_client, m_model_name, m_force_convert_inputs);
 }
 
+triton::client::InferenceServerHttpClient& HttpTritonClient::get_client()
+{
+    if (m_fiber_local_client.get() == nullptr)
+    {
+        // Block in case we need to change the server_url
+        std::unique_lock lock(m_client_mutex);
+
+        std::unique_ptr<triton::client::InferenceServerHttpClient> client;
+
+        CHECK_TRITON(triton::client::InferenceServerHttpClient::Create(&client, m_server_url, false));
+
+        bool is_server_live;
+
+        auto status = client->IsServerLive(&is_server_live);
+
+        if (not status.IsOk())
+        {
+            std::string new_server_url = m_server_url;
+            // We are using the default gRPC port, try the default HTTP
+            if (is_default_grpc_port(new_server_url))
+            {
+                LOG(WARNING) << "Failed to connect to Triton at '" << m_server_url
+                             << "'. Default gRPC port of (8001) was detected but C++ "
+                                "InferenceClientStage uses HTTP protocol. Retrying with default HTTP port (8000)";
+
+                CHECK_TRITON(triton::client::InferenceServerHttpClient::Create(&client, new_server_url, false));
+
+                status = client->IsServerLive(&is_server_live);
+
+                // If that worked, update the server URL
+                if (status.IsOk() && is_server_live)
+                {
+                    m_server_url = new_server_url;
+                }
+            }
+            else if (status.Message().find("Unsupported protocol") != std::string::npos)
+            {
+                throw std::runtime_error(MORPHEUS_CONCAT_STR(
+                    "Failed to connect to Triton at '"
+                    << m_server_url
+                    << "'. Received 'Unsupported Protocol' error. Are you using the right port? The C++ "
+                       "InferenceClientStage uses Triton's HTTP protocol instead of gRPC. Ensure you have "
+                       "specified the HTTP port (Default 8000)."));
+            }
+
+            if (!status.IsOk())
+                throw std::runtime_error(MORPHEUS_CONCAT_STR(
+                    "Unable to connect to Triton at '"
+                    << m_server_url << "'. Check the URL and port and ensure the server is running."));
+        }
+
+        if (!is_server_live)
+            throw std::runtime_error(MORPHEUS_CONCAT_STR(
+                "Unable to connect to Triton at '"
+                << m_server_url
+                << "'. Server reported as not live. Check the URL and port and ensure the server is running."));
+
+        m_fiber_local_client.reset(client.release());
+    }
+
+    return *m_fiber_local_client;
+}
 }  // namespace morpheus

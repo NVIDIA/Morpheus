@@ -121,6 +121,20 @@ class FakeInferResult : public triton::client::InferResult
         *buf         = reinterpret_cast<uint8_t*>(const_cast<int32_t*>(output.data()));
         return triton::client::Error::Success;
     }
+
+    /// Get final response bool for this response.
+    /// \return Error object indicating the success or failure.
+    triton::client::Error IsFinalResponse(bool* is_final_response) const override
+    {
+        throw std::runtime_error("ModelVersion not implemented");
+    }
+
+    /// Get null response bool for this response.
+    /// \return Error object indicating the success or failure.
+    triton::client::Error IsNullResponse(bool* is_null_response) const override
+    {
+        throw std::runtime_error("ModelVersion not implemented");
+    }
 };
 
 class FakeTritonClient : public morpheus::ITritonClient

@@ -78,7 +78,6 @@ def _run_minibert_pipeline(
     config.pipeline_batch_size = 1024
     config.feature_length = FEATURE_LENGTH
     config.edge_buffer_size = 128
-    config.num_threads = 1
 
     val_file_name = os.path.join(TEST_DIRS.validation_data_dir, 'sid-validation-data.csv')
     vocab_file_name = os.path.join(TEST_DIRS.data_dir, 'bert-base-uncased-hash.txt')
@@ -179,6 +178,8 @@ def _run_minibert(*,
 @pytest.mark.usefixtures("launch_mock_triton")
 @pytest.mark.parametrize("message_type", [MultiMessage, ControlMessage])
 def test_minibert_no_trunc(config: Config, tmp_path: str, message_type: type, morpheus_log_level: int):
+
+    config.num_threads = os.cpu_count() or 1
 
     results = _run_minibert(config=config,
                             tmp_path=tmp_path,

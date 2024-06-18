@@ -108,7 +108,7 @@ outputs:
         - scikit-learn =1.3.2.*
         - sqlalchemy <2.0 # 2.0 is incompatible with pandas=1.3
         - tqdm =4.*
-        - tritonclient =2.34.*
+        - tritonclient =2.45.*
         - typing_utils =0.1.*
         - watchdog =3.0.*
         - websockets

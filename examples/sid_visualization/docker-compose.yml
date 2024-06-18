@@ -25,7 +25,7 @@ x-with-gpus: &with_gpus
 
 services:
   triton:
-    image: nvcr.io/nvidia/tritonserver:23.06-py3
+    image: nvcr.io/nvidia/tritonserver:24.04-py3
     <<: *with_gpus
     command: "tritonserver --exit-on-error=false --model-control-mode=explicit --load-model sid-minibert-onnx --model-repository=/models/triton-model-repo"
     environment:

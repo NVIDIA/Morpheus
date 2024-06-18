@@ -22,6 +22,7 @@
 #include "morpheus/stages/inference_client_stage.hpp"
 #include "morpheus/types.hpp"
 
+#include <boost/fiber/fss.hpp>
 #include <http_client.h>
 #include <mrc/coroutines/task.hpp>
 
@@ -29,6 +30,7 @@
 // IWYU pragma: no_include "rxcpp/sources/rx-iterate.hpp"
 
 #include <memory>
+#include <mutex>
 #include <string>
 #include <vector>
 
@@ -106,7 +108,11 @@ class MORPHEUS_EXPORT ITritonClient
 class MORPHEUS_EXPORT HttpTritonClient : public ITritonClient
 {
   private:
-    std::unique_ptr<triton::client::InferenceServerHttpClient> m_client;
+    std::string m_server_url;
+    std::mutex m_client_mutex;
+    boost::fibers::fiber_specific_ptr<triton::client::InferenceServerHttpClient> m_fiber_local_client;
+
+    triton::client::InferenceServerHttpClient& get_client();
 
   public:
     HttpTritonClient(std::string server_url);

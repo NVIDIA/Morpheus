@@ -189,7 +189,7 @@ dependencies:
           - rapidjson=1.1.0
           - scikit-build=0.17.6
           - sysroot_linux-64=2.17
-          - tritonclient=2.34
+          - tritonclient=2.45
           - ucx=1.15
           - zlib=1.2.13
 
