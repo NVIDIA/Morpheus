@@ -53,11 +53,7 @@ from cudf.core.buffer import (
     # cuda_array_interface_wrapper,
 )
 cimport pylibcudf.libcudf.types as libcudf_types
-from cudf._lib.types cimport (
-    dtype_from_column_view,
-    # dtype_to_data_type,
-    # dtype_to_pylibcudf_type,
-)
+from cudf._lib.column cimport dtype_from_column_view
 from cudf._lib.null_mask import bitmask_allocation_size_bytes
 from cudf._lib.column cimport Column
 # isort: on
