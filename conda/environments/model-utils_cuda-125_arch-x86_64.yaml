@@ -9,7 +9,7 @@ channels:
 - nvidia/label/dev
 - pytorch
 dependencies:
-- cuml=24.10.*
+- cuml=25.02.*
 - jupyterlab
 - matplotlib
 - onnx

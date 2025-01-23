@@ -296,17 +296,17 @@ dependencies:
       - output_types: [conda]
         packages:
           # Include: cudatoolkit-dev
-          - cudf=24.10
+          - &cudf cudf=25.02
           - cython=3.0
           - glog>=0.7.1,<0.8
           - gtest=1.14
-          - libcudf=24.10
+          - libcudf=25.02
           - librdkafka>=1.9.2,<1.10.0a0
           - libzlib >=1.3.1,<2
-          - mrc=25.02
+          - &mrc mrc=25.02
           - nlohmann_json=3.11
           - pybind11-stubgen=0.10.5
-          - pylibcudf=24.10
+          - pylibcudf=25.02
           - rapidjson=1.1.0
           - rdma-core>=48 # Needed for DOCA.
           - scikit-build=0.17.6
@@ -332,7 +332,7 @@ dependencies:
           - flake8
           - isort
           - pylint=3.0.3
-          - pynvml=11.4
+          - pynvml=12
           - versioneer
           - yapf=0.43
     specific:
@@ -383,7 +383,7 @@ dependencies:
           - beautifulsoup4=4.12
           - click>=8
           # - cuda-version=12.5 ##
-          - cudf=24.10
+          - *cudf
           - cupy # Version determined from cudf
           - datacompy=0.10
           - dill=0.3.7
@@ -394,14 +394,14 @@ dependencies:
           - grpcio-status
           # - libwebp=1.3.2 # Required for CVE mitigation: https://nvd.nist.gov/vuln/detail/CVE-2023-4863 ##
           - mlflow>=2.10.0,<2.18 # Pin version to avoid breaking change in 2.18 to thread local variable code commit id: 5541888
-          - mrc=25.02
+          - *mrc
           - networkx=2.8.8
           - numpydoc=1.5
           - pydantic
           - python-confluent-kafka>=1.9.2,<1.10.0a0
           - python-graphviz
           - pluggy=1.3
-          - rapids-dask-dependency=24.10 # provides dask and distributed
+          - rapids-dask-dependency=25.02 # provides dask and distributed
           - requests
           - requests-cache=1.1
           - scikit-learn=1.3.2
@@ -531,7 +531,7 @@ dependencies:
     common:
       - output_types: [conda]
         packages:
-          - &cuml cuml=24.10.*
+          - &cuml cuml=25.02.*
           - pip
           - pip:
             - --find-links https://data.dgl.ai/wheels/cu121/repo.html

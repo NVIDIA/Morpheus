@@ -160,7 +160,8 @@ nvtext::tokenizer_result PreprocessNLPStage::subword_tokenize(const std::string&
                                                  stride,
                                                  do_lower_case,
                                                  truncation,
-                                                 rmm::mr::get_current_device_resource());
+                                                 rmm::cuda_stream_default,
+                                                 mr);
     }
     else
     {

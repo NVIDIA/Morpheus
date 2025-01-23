@@ -16,7 +16,7 @@ dependencies:
 - cuda-nvrtc=12.5
 - cuda-nvtx=12.5
 - cuda-version=12.5
-- cudf=24.10
+- cudf=25.02
 - cupy
 - datacompy=0.10
 - dill=0.3.7
@@ -36,7 +36,7 @@ dependencies:
 - python-confluent-kafka>=1.9.2,<1.10.0a0
 - python-graphviz
 - python=3.10
-- rapids-dask-dependency=24.10
+- rapids-dask-dependency=25.02
 - requests
 - requests-cache=1.1
 - scikit-learn=1.3.2

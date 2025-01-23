@@ -39,7 +39,7 @@ option(MORPHEUS_USE_IWYU "Enable running include-what-you-use as part of the bui
 
 set(MORPHEUS_PY_INSTALL_DIR "${CMAKE_CURRENT_BINARY_DIR}/wheel" CACHE STRING "Location to install the python directory")
 
-set(MORPHEUS_RAPIDS_VERSION "24.10" CACHE STRING "Sets default versions for RAPIDS libraries.")
+set(MORPHEUS_RAPIDS_VERSION "25.02" CACHE STRING "Sets default versions for RAPIDS libraries.")
 set(MORPHEUS_CACHE_DIR "${CMAKE_SOURCE_DIR}/.cache" CACHE PATH "Directory to contain all CPM and CCache data")
 mark_as_advanced(MORPHEUS_CACHE_DIR)
 
