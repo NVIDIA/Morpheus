@@ -70,7 +70,7 @@ outputs:
         - mrc {{ minor_version }}
         - nlohmann_json 3.11.*
         - pip
-        - pybind11-stubgen 0.10.5
+        - pybind11-stubgen 2.4.2
         - python {{ python }}
         - rapidjson 1.1.0
         - scikit-build 0.17.6
@@ -215,7 +215,7 @@ outputs:
         - cython 3.0.*
         - glog >=0.7.1,<0.8
         - pip
-        - pybind11-stubgen 0.10.5
+        - pybind11-stubgen 2.4.2
         - python {{ python }}
         - rapidjson 1.1.0
         - scikit-build 0.17.6

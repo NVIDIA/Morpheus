@@ -119,7 +119,7 @@ PYBIND11_MODULE(messages, _module)
 {
     _module.doc() = R"pbdoc(
         -----------------------
-        .. currentmodule:: morpheus.messages
+        .. currentmodule:: morpheus._lib.messages
         .. autosummary::
            :toctree: _generate
 

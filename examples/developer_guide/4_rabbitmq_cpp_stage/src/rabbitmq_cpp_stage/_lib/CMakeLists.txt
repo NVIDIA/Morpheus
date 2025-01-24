@@ -16,6 +16,8 @@
 list(APPEND CMAKE_MESSAGE_CONTEXT "rabbitmq_cpp_stage")
 
 morpheus_add_pybind11_module(rabbitmq_cpp_stage
+  MODULE_ROOT
+    ${CMAKE_CURRENT_SOURCE_DIR}
   SOURCE_FILES
     "rabbitmq_source.cpp"
   INCLUDE_DIRS

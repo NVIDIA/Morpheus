@@ -61,7 +61,7 @@ PYBIND11_MODULE(stages, _module)
 {
     _module.doc() = R"pbdoc(
         -----------------------
-        .. currentmodule:: morpheus.stages
+        .. currentmodule:: morpheus._lib.stages
         .. autosummary::
            :toctree: _generate
 
@@ -73,7 +73,11 @@ PYBIND11_MODULE(stages, _module)
     // Import the mrc coro module
     mrc::pymrc::import(_module, "mrc.core.coro");
 
-    mrc::pymrc::from_import(_module, "morpheus._lib.common", "FilterSource");
+    // Import enums which are used as default argument values all of which require using py::arg_v
+    // ref https://pybind11.readthedocs.io/en/latest/advanced/functions.html#default-arguments-revisited
+    mrc::pymrc::from_import(_module, "morpheus._lib.common", "FileTypes");
+    mrc::pymrc::from_import(_module, "morpheus._lib.common", "IndicatorsFontStyle");
+    mrc::pymrc::from_import(_module, "morpheus._lib.common", "IndicatorsTextColor");
 
     py::class_<mrc::segment::Object<AddClassificationsStage>,
                mrc::segment::ObjectProperties,
@@ -200,9 +204,9 @@ PYBIND11_MODULE(stages, _module)
              py::arg("builder"),
              py::arg("name"),
              py::arg("description"),
-             py::arg("unit")               = "messages",
-             py::arg("text_color")         = indicators::Color::cyan,
-             py::arg("font_style")         = indicators::FontStyle::bold,
+             py::arg("unit") = "messages",
+             py::arg_v("text_color", indicators::Color::cyan, "IndicatorsTextColor.cyan"),
+             py::arg_v("font_style", indicators::FontStyle::bold, "IndicatorsFontStyle.bold"),
              py::arg("determine_count_fn") = py::none());
 
     py::class_<mrc::segment::Object<MonitorStage<ControlMessage>>,
@@ -213,9 +217,9 @@ PYBIND11_MODULE(stages, _module)
              py::arg("builder"),
              py::arg("name"),
              py::arg("description"),
-             py::arg("unit")               = "messages",
-             py::arg("text_color")         = indicators::Color::cyan,
-             py::arg("font_style")         = indicators::FontStyle::bold,
+             py::arg("unit") = "messages",
+             py::arg_v("text_color", indicators::Color::cyan, "IndicatorsTextColor.cyan"),
+             py::arg_v("font_style", indicators::FontStyle::bold, "IndicatorsFontStyle.bold"),
              py::arg("determine_count_fn") = py::none());
 
     py::class_<mrc::segment::Object<PreallocateStage<ControlMessage>>,
@@ -331,8 +335,8 @@ PYBIND11_MODULE(stages, _module)
              py::arg("builder"),
              py::arg("name"),
              py::arg("filename"),
-             py::arg("mode")              = "w",
-             py::arg("file_type")         = FileTypes::Auto,
+             py::arg("mode") = "w",
+             py::arg_v("file_type", FileTypes::Auto, "FileTypes.Auto"),
              py::arg("include_index_col") = true,
              py::arg("flush")             = false);
 

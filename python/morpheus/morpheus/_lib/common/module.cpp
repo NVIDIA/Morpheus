@@ -54,7 +54,7 @@ PYBIND11_MODULE(common, _module)
 {
     _module.doc() = R"pbdoc(
         -----------------------
-        .. currentmodule:: morpheus.common
+        .. currentmodule:: morpheus._lib.common
         .. autosummary::
            :toctree: _generate
         )pbdoc";
@@ -132,17 +132,22 @@ PYBIND11_MODULE(common, _module)
         return DType(tid).is_fully_supported();
     });
 
+    // Using py::arg_v style for default arguments where the default is a C++ enum
+    // ref https://pybind11.readthedocs.io/en/latest/advanced/functions.html#default-arguments-revisited
     _module.def(
         "determine_file_type", py::overload_cast<const std::string&>(&determine_file_type), py::arg("filename"));
     _module.def("determine_file_type",
                 py::overload_cast<const std::filesystem::path&>(&determine_file_type),
                 py::arg("filename"));
-    _module.def("read_file_to_df", &read_file_to_df, py::arg("filename"), py::arg("file_type") = FileTypes::Auto);
+    _module.def("read_file_to_df",
+                &read_file_to_df,
+                py::arg("filename"),
+                py::arg_v("file_type", FileTypes::Auto, "FileTypes.Auto"));
     _module.def("write_df_to_file",
                 &SerializersProxy::write_df_to_file,
                 py::arg("df"),
                 py::arg("filename"),
-                py::arg("file_type") = FileTypes::Auto);
+                py::arg_v("file_type", FileTypes::Auto, "FileTypes.Auto"));
 
     py::enum_<FilterSource>(
         _module, "FilterSource", "Enum to indicate which source the FilterDetectionsStage should operate on.")

@@ -75,7 +75,7 @@ outputs:
         - mrc {{ minor_version }}
         - nlohmann_json 3.11.*
         - pip
-        - pybind11-stubgen 0.10.5
+        - pybind11-stubgen 2.4.2
         - python {{ python }}
         - rapidjson 1.1.0
         - rdma-core >=48 # Needed for DOCA.
