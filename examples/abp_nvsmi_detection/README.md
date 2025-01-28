@@ -225,22 +225,22 @@ Inference Rate[Complete]: 1242inf [00:00, 1863.04inf/s]
 ====Pipeline Complete====
 ```
 
-The output file `.tmp/output/detections.jsonlines` will contain a single boolean value for each input line. At some point the values will switch from `0` to `1`:
+The output file `.tmp/output/abp_nvsmi_detections.jsonlines` will contain a single boolean value for each input line. At some point the values will switch from `false` to `true`:
 
 ```
 ...
-{"mining": 0}
-{"mining": 0}
-{"mining": 0}
-{"mining": 0}
-{"mining": 1}
-{"mining": 1}
-{"mining": 1}
-{"mining": 1}
-{"mining": 1}
-{"mining": 1}
-{"mining": 1}
-{"mining": 1}
+{"mining": false}
+{"mining": false}
+{"mining": false}
+{"mining": false}
+{"mining": true}
+{"mining": true}
+{"mining": true}
+{"mining": true}
+{"mining": true}
+{"mining": true}
+{"mining": true}
+{"mining": true}
 ...
 ```
 
