@@ -58,6 +58,7 @@ The image can be verified with the web management console by opening http://loca
 ## Launch the reader
 In a second terminal from the root of the Morpheus repo execute:
 ```bash
+export MORPHEUS_ROOT=$(pwd)
 python examples/developer_guide/4_rabbitmq_cpp_stage/src/read_simple.py
 ```
 
@@ -68,6 +69,7 @@ If no exchange named 'logs' exists in RabbitMQ it will be created.
 ## Launch the writer
 In a third terminal from the root of the Morpheus repo execute:
 ```bash
+export MORPHEUS_ROOT=$(pwd)
 python examples/developer_guide/4_rabbitmq_cpp_stage/src/write_simple.py
 ```
 

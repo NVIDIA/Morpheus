@@ -44,6 +44,7 @@ pip install -r examples/developer_guide/2_2_rabbitmq/requirements.txt
 ## Launch the reader
 In a second terminal from the root of the Morpheus repo execute:
 ```bash
+export MORPHEUS_ROOT=$(pwd)
 python examples/developer_guide/2_2_rabbitmq/read_simple.py
 ```
 

@@ -25,7 +25,7 @@ import numpy as np
 import pandas as pd
 import pyarrow as pa
 import websockets.legacy.server
-from websockets.server import serve
+from websockets.server import serve  # pylint: disable=no-name-in-module
 
 from morpheus.cli.register_stage import register_stage
 from morpheus.config import Config
@@ -207,7 +207,9 @@ class GenerateVizFramesStage(GpuAndCpuMixin, PassThruTypeMixin, SinglePortStage)
                 except Closed:
                     break
                 except Exception as ex:
-                    logger.exception("Error occurred trying to send message over socket", exc_info=ex)
+                    if not self._server_close_event.is_set():
+                        # Don't log if we are shutting down
+                        logger.exception("Error occurred trying to send message over socket", exc_info=ex)
 
             logger.info("Disconnected from: %s:%s", *websocket.remote_address)
 
