@@ -28,18 +28,3 @@ dynamic_batching {
   preferred_batch_size: 256
   max_queue_delay_microseconds: 50000
 }
-optimization {
-  execution_accelerators {
-    gpu_execution_accelerator {
-      name: "tensorrt"
-      parameters {
-        key: "max_workspace_size_bytes"
-        value: "1073741824"
-      }
-      parameters {
-        key: "precision_mode"
-        value: "FP16"
-      }
-    }
-  }
-}
