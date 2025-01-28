@@ -104,6 +104,12 @@ class ProgressBarContextManager
     {
         std::lock_guard<std::mutex> lock(m_mutex);
 
+        // To avoid display_all() being executed after calling mark_pbar_as_completed() in some race conditions
+        if (m_is_completed)
+        {
+            return;
+        }
+
         // A bit of hack here to make the font settings work. Indicators enables the font options only if the bars are
         // output to standard streams (see is_colorized() in <indicators/termcolor.hpp>), but since we are still using
         // the ostream (m_stdout_os) that is connected to the console terminal, the font options should be enabled.
@@ -114,11 +120,11 @@ class ProgressBarContextManager
         {
             pbar->print_progress(true);
             m_stdout_os << termcolor::reset;  // The font option only works for the current bar
-            m_stdout_os << "\n";
+            m_stdout_os << std::endl;
         }
 
         // After each round of display, move cursor up ("\033[A") to the beginning of the first bar
-        m_stdout_os << "\033[" << m_progress_bars.size() << "A";
+        m_stdout_os << "\033[" << m_progress_bars.size() << "A" << std::flush;
     }
 
     void mark_pbar_as_completed(size_t bar_id)
