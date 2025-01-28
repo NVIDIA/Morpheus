@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: Copyright (c) 2023-2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-FileCopyrightText: Copyright (c) 2023-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 # SPDX-License-Identifier: Apache-2.0
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -21,7 +21,7 @@ files:
     output: conda
     matrix:
       cuda: ["12.5"]
-      arch: [x86_64]
+      arch: [x86_64, aarch64]
     includes:
       - benchmark_cpp
       - build_cpp_build
@@ -47,7 +47,7 @@ files:
     output: conda
     matrix:
       cuda: ["12.5"]
-      arch: [x86_64]
+      arch: [x86_64, aarch64]
     includes:
       - benchmark_cpp
       - build_cpp_build
@@ -69,7 +69,7 @@ files:
     output: none
     matrix:
       cuda: ["12.5"]
-      arch: [x86_64]
+      arch: [x86_64, aarch64]
     includes:
       - benchmark_cpp
       - build_cpp_build
@@ -89,7 +89,7 @@ files:
     output: none
     matrix:
       cuda: ["12.5"]
-      arch: [x86_64]
+      arch: [x86_64, aarch64]
     includes:
       - benchmark_cpp
       - cudatoolkit
@@ -133,7 +133,7 @@ files:
     output: conda
     matrix:
       cuda: ["12.5"]
-      arch: [x86_64]
+      arch: [x86_64, aarch64]
     includes:
       - cudatoolkit
       - cve-mitigation
@@ -147,7 +147,7 @@ files:
     output: conda
     matrix:
       cuda: ["12.5"]
-      arch: [x86_64]
+      arch: [x86_64, aarch64]
     includes:
       - cve-mitigation
       - example-abp-nvsmi
@@ -164,7 +164,7 @@ files:
     output: conda
     matrix:
       cuda: ["12.5"]
-      arch: [x86_64]
+      arch: [x86_64, aarch64]
     includes:
       - model-training-tuning
       - python
@@ -180,6 +180,8 @@ files:
   morpheus_core:
     output: requirements
     requirements_dir: python/morpheus/morpheus
+    matrix:
+      arch: [x86_64, aarch64]
     includes:
       - morpheus_core_pip
 
@@ -187,6 +189,8 @@ files:
   morpheus_dfp:
     output: requirements
     requirements_dir: python/morpheus_dfp/morpheus_dfp
+    matrix:
+      arch: [x86_64, aarch64]
     includes:
       - morpheus_core_pip
 
@@ -194,6 +198,8 @@ files:
   morpheus_llm:
     output: requirements
     requirements_dir: python/morpheus_llm/morpheus_llm
+    matrix:
+      arch: [x86_64, aarch64]
     includes:
       - morpheus_core_pip
       - morpheus_llm_pip
@@ -203,7 +209,7 @@ files:
     output: conda
     matrix:
       cuda: ["12.5"]
-      arch: [x86_64]
+      arch: [x86_64, aarch64]
     output: conda
     conda_dir: examples/digital_fingerprinting/production/conda/environments
     includes:
@@ -277,6 +283,7 @@ dependencies:
           - cmake=3.27
           - cuda-cudart-dev=12.5
           - cuda-version=12.5
+          - indicators=2.3 # C++ library for displaying progress bars
           - libtool # Needed for DOCA build
           - ninja=1.11
           - pkg-config=0.29 # for mrc cmake
@@ -296,7 +303,7 @@ dependencies:
           - libcudf=24.10
           - librdkafka>=1.9.2,<1.10.0a0
           - libzlib >=1.3.1,<2
-          - mrc=24.10
+          - mrc=25.02
           - nlohmann_json=3.11
           - pybind11-stubgen=0.10.5
           - pylibcudf=24.10
@@ -323,15 +330,25 @@ dependencies:
         packages:
           - clangdev=16
           - flake8
-          - include-what-you-use=0.20
           - isort
           - pylint=3.0.3
           - pynvml=11.4
-          - vale=3.7
-          - vale-styles-microsoft
-          - vale-styles-write-good
           - versioneer
-          - yapf=0.40.1
+          - yapf=0.43
+    specific:
+      - output_types: [conda]
+        matrices:
+          - matrix:
+              arch: x86_64
+            packages:
+              # IWYU v0.20 doesn't support aarch64, but is supported in 0.21+
+              - include-what-you-use=0.20
+              # Vale does not have arm64 builds for linux
+              - vale=3.7
+              - vale-styles-microsoft
+              - vale-styles-write-good
+          - matrix:
+              arch: aarch64
 
   docs:
     common:
@@ -377,7 +394,7 @@ dependencies:
           - grpcio-status
           # - libwebp=1.3.2 # Required for CVE mitigation: https://nvd.nist.gov/vuln/detail/CVE-2023-4863 ##
           - mlflow>=2.10.0,<2.18 # Pin version to avoid breaking change in 2.18 to thread local variable code commit id: 5541888
-          - mrc=24.10
+          - mrc=25.02
           - networkx=2.8.8
           - numpydoc=1.5
           - pydantic
@@ -396,19 +413,31 @@ dependencies:
           - websockets
           - pip
           - pip:
-            - --extra-index-url https://download.pytorch.org/whl/cu124
+            - &torch-extra-index --extra-index-url https://download.pytorch.org/whl/cu124
             - databricks-cli < 0.100
             - databricks-connect
-            - milvus==2.3.5 # update to match pymilvus when available
-            - pymilvus==2.3.6
-            - torch==2.4.0+cu124
+    specific:
+      - output_types: [conda]
+        matrices:
+          - matrix:
+              arch: x86_64
+            packages:
+              - pip:
+                # Milvus does not have arm64 builds for linux
+                - &milvus milvus==2.3.5 # update to match pymilvus when available
+                - &pymilvus pymilvus==2.3.6
+                - &torchcu torch==2.4.0+cu124
+          - matrix:
+              arch: aarch64
+            packages:
+              - pip:
+                - &torch torch==2.4.0
 
   test_python_morpheus:
     common:
       - output_types: [conda]
         packages:
           - &nodejs nodejs=18.*
-          - &pypdfium2 pypdfium2=4.30
           - pytest-asyncio
           - pytest-benchmark=4.0
           - pytest-cov
@@ -417,25 +446,50 @@ dependencies:
           - pip
           - pip:
               - pytest-kafka==0.6.0
+    specific:
+      - output_types: [conda]
+        matrices:
+          - matrix:
+              arch: x86_64
+            packages:
+              # pypdfium2 does not have Conda arm64 builds, but does have pip arm64 builds
+              - &pypdfium2 pypdfium2==4.30
+          - matrix:
+              arch: aarch64
+            packages:
+              - pip:
+                - *pypdfium2
 
   morpheus_core_pip:
     common:
       - output_types: [requirements]
         packages:
-           - --extra-index-url https://download.pytorch.org/whl/cu124
-           - torch==2.4.0+cu124
+           - *torch-extra-index
+    specific:
+      - output_types: [requirements]
+        matrices:
+          - matrix:
+              arch: x86_64
+            packages:
+              - *torchcu
+          - matrix:
+              arch: aarch64
+            packages:
+              - *torch
 
   morpheus_llm_pip:
     common:
       - output_types: [requirements]
         packages:
-           - faiss-cpu
-           - google-search-results==2.4
-           - langchain==0.1.16
-           - langchain-nvidia-ai-endpoints==0.0.11
-           - milvus==2.3.5 # update to match pymilvus when available
-           - pymilvus==2.3.6
-           - nemollm==0.3.5
+           - &faiss-cpu faiss-cpu
+           - &google-search-results google-search-results==2.4
+           - &langchain langchain==0.1.16
+           - &langchain-nvidia-ai-endpoints langchain-nvidia-ai-endpoints==0.0.11
+           - &langchain-openai langchain-openai==0.1.3
+           - *milvus
+           - &nemollm nemollm==0.3.5
+           - &openai openai==1.13.*
+           - *pymilvus
 
   example-dfp-prod:
     common:
@@ -455,11 +509,23 @@ dependencies:
     common:
       - output_types: [conda]
         packages:
-          - morpheus-dfp=24.10
+          - morpheus-dfp=25.02
           - tini=0.19
           - pip:
-            - --extra-index-url https://download.pytorch.org/whl/cu124
-            - torch==2.4.0+cu124
+            - *torch-extra-index
+    specific:
+      - output_types: [conda]
+        matrices:
+          - matrix:
+              arch: x86_64
+            packages:
+              - pip:
+                - *torchcu
+          - matrix:
+              arch: aarch64
+            packages:
+              - pip:
+                - *torch
 
   example-gnn:
     common:
@@ -486,24 +552,40 @@ dependencies:
           - &transformers transformers=4.36.2 # newer versions are incompatible with our pinned version of huggingface_hub
           - anyio>=3.7
           - arxiv=1.4
+          - httpx>=0.23,<0.28 # work-around for https://github.com/openai/openai-python/issues/1915
           - huggingface_hub=0.20.2 # work-around for https://github.com/UKPLab/sentence-transformers/issues/1762
           - jsonpatch>=1.33
-          - newspaper3k=0.2
           - numexpr
           - onnx=1.15
-          - openai=1.13
+          - *openai
           - pypdf=3.17.4
-          - *pypdfium2
           - *python-docx
           - requests-toolbelt=1.0 # Transitive dep needed by nemollm, specified here to ensure we get a compatible version
           - pip
           - pip:
-            - langchain==0.1.16
-            - langchain-nvidia-ai-endpoints==0.0.11
-            - faiss-cpu
-            - google-search-results==2.4
-            - nemollm==0.3.5
+            - *faiss-cpu
+            - *google-search-results
+            - *langchain
+            - *langchain-nvidia-ai-endpoints
+            - *langchain-openai
+            - *nemollm
             - sentence-transformers==2.7 # using pip now instead of conda to avoid install of pytorch cpu
+    specific:
+      - output_types: [conda]
+        matrices:
+          - matrix:
+              arch: x86_64
+            packages:
+              # newspaper3k is packaged noarch, but some deps jieba3k are not having issues resolving on arm64
+              - &newspaper3k newspaper3k==0.2.8
+              - *pypdfium2
+          - matrix:
+              arch: aarch64
+            packages:
+              - pip:
+                - *newspaper3k
+                - *pypdfium2
+
 
   model-training-tuning:
     common:

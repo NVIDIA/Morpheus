@@ -1,4 +1,4 @@
-# Copyright (c) 2021-2024, NVIDIA CORPORATION.
+# Copyright (c) 2021-2025, NVIDIA CORPORATION.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -81,19 +81,22 @@ class AbpPcapPreprocessingStage(PreprocessBaseStage):
     def pre_process_batch(msg: ControlMessage, fea_len: int, fea_cols: typing.List[str],
                           req_cols: typing.List[str]) -> ControlMessage:
         meta = msg.payload()
+        assert meta is not None, "Payload is None"
+        orig_df = meta.get_data()
+
         # Converts the int flags field into a binary string
-        flags_bin_series = meta.get_data("flags").to_pandas().apply(lambda x: format(int(x), "05b"))
+        flags = orig_df["flags"].astype("int8")
+        flags_bin_series = (flags // 16 % 2).astype('O') + (flags // 8 % 2).astype('O') + (
+            flags // 4 % 2).astype('O') + (flags // 2 % 2).astype('O') + (flags % 2).astype('O')
 
-        # Expand binary string into an array
-        df = cudf.DataFrame(np.vstack(flags_bin_series.str.findall("[0-1]")).astype("int8"),
-                            index=meta.get_data().index)
+        flag_array = flags_bin_series.str.findall("[0-1]").list.astype("int8")
 
-        # adding [ack, psh, rst, syn, fin] details from the binary flag
+        # Expand binary string into an array adding [ack, psh, rst, syn, fin] details from the binary flag
         rename_cols_dct = {0: "ack", 1: "psh", 2: "rst", 3: "syn", 4: "fin"}
-        df = df.rename(columns=rename_cols_dct)
+        df = cudf.DataFrame({rename_cols_dct[i]: flag_array.list.get(i) for i in range(5)}, index=orig_df.index)
 
         df["flags_bin"] = flags_bin_series
-        df["timestamp"] = meta.get_data("timestamp").astype("int64")
+        df["timestamp"] = orig_df["timestamp"].astype("int64")
 
         def round_time_kernel(timestamp, rollup_time, secs):
             for i, time in enumerate(timestamp):
@@ -112,8 +115,8 @@ class AbpPcapPreprocessingStage(PreprocessBaseStage):
         df["rollup_time"] = cudf.to_datetime(df["rollup_time"], unit="us").dt.strftime("%Y-%m-%d %H:%M")
 
         # creating flow_id "src_ip:src_port=dst_ip:dst_port"
-        df["flow_id"] = (meta.get_data("src_ip") + ":" + meta.get_data("src_port").astype("str") + "=" +
-                         meta.get_data("dest_ip") + ":" + meta.get_data("dest_port").astype("str"))
+        df["flow_id"] = (orig_df["src_ip"] + ":" + orig_df["src_port"].astype("str") + "=" + orig_df["dest_ip"] + ":" +
+                         orig_df["dest_port"].astype("str"))
         agg_dict = {
             "ack": "sum",
             "psh": "sum",
@@ -124,7 +127,7 @@ class AbpPcapPreprocessingStage(PreprocessBaseStage):
             "flow_id": "count",
         }
 
-        df["data_len"] = meta.get_data("data_len").astype("int16")
+        df["data_len"] = orig_df["data_len"].astype("int16")
 
         # group by operation
         grouped_df = df.groupby(["rollup_time", "flow_id"]).agg(agg_dict)

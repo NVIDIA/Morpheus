@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1.3
 
-# SPDX-FileCopyrightText: Copyright (c) 2021-2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-FileCopyrightText: Copyright (c) 2021-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 # SPDX-License-Identifier: Apache-2.0
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -59,16 +59,20 @@ ARG PYTHON_VER=3.10
 ARG MORPHEUS_ROOT_HOST=.
 # Supply a channel alias to use for conda. This is needed if the conda channels go down
 ARG CONDA_CHANNEL_ALIAS="https://conda.anaconda.org"
+# This should reflect the output of the `arch` command.
+ARG REAL_ARCH=x86_64
 
 # ============ Stage: base ============
 # Configure the base conda environment
-FROM ${FROM_IMAGE}:${CUDA_MAJOR_VER}.${CUDA_MINOR_VER}.${CUDA_REV_VER}-base-${LINUX_DISTRO}${LINUX_VER} AS base
+FROM --platform=$TARGETPLATFORM ${FROM_IMAGE}:${CUDA_MAJOR_VER}.${CUDA_MINOR_VER}.${CUDA_REV_VER}-base-${LINUX_DISTRO}${LINUX_VER} AS base
 
 ARG CUDA_MAJOR_VER
 ARG CUDA_MINOR_VER
 ARG PYTHON_VER
+ARG REAL_ARCH
 
 ENV DEBIAN_FRONTEND=noninteractive
+ENV REAL_ARCH=${REAL_ARCH}
 
 # Remove the file which breaks apt caching since we will handle it ourselves. See
 # https://vsupalov.com/buildkit-cache-mount-dockerfile/
@@ -92,7 +96,6 @@ RUN --mount=type=cache,id=apt,target=/var/cache/apt \
         libcurand-${CUDA_MAJOR_VER}-${CUDA_MINOR_VER} \
         libcusolver-${CUDA_MAJOR_VER}-${CUDA_MINOR_VER} \
         libnuma1 \
-        openjdk-11-jre-headless \
         openssh-client \
         pkg-config \
         tar \
@@ -123,7 +126,7 @@ RUN --mount=type=cache,id=conda_pkgs,target=/opt/conda/pkgs,sharing=locked \
 
 # ============ Stage: conda_env ============
 # Create the conda environment and install all dependencies
-FROM base as conda_env
+FROM --platform=$TARGETPLATFORM base AS conda_env
 
 ARG MORPHEUS_ROOT_HOST
 
@@ -151,7 +154,7 @@ SHELL ["/bin/bash", "-c"]
 
 # ============ Stage: conda_bld_morpheus_core ============
 # Now build the morpheus conda package
-FROM conda_env as conda_bld_morpheus_core
+FROM --platform=$TARGETPLATFORM conda_env AS conda_bld_morpheus_core
 
 ARG MORPHEUS_ROOT_HOST
 ARG CUDA_MAJOR_VER
@@ -185,6 +188,7 @@ COPY . ./
 
 RUN --mount=type=cache,id=workspace_cache,target=/workspace/.cache,sharing=locked \
     --mount=type=cache,id=conda_pkgs,target=/opt/conda/pkgs,sharing=locked \
+    --mount=type=cache,id=pip_cache,target=/root/.cache/pip,sharing=locked \
     # Install git-lfs before running the build to avoid errors during conda build
     /opt/conda/bin/mamba install -y -n base -c conda-forge "git-lfs" &&\
     source activate base &&\
@@ -197,7 +201,7 @@ RUN --mount=type=cache,id=workspace_cache,target=/workspace/.cache,sharing=locke
 
 # ============ Stage: base_extended ============
 # Base environment with any optional extensions. ex. DOCA libs
-FROM conda_env as base_extended
+FROM --platform=$TARGETPLATFORM conda_env AS base_extended
 
 # Add one or more optional dependencies to the base environment
 ARG MORPHEUS_ROOT_HOST
@@ -215,18 +219,20 @@ RUN --mount=type=cache,id=doca,target=/tmp/doca,sharing=locked \
 
 # ============ Stage: conda_env_dev ============
 # Create the development conda environment
-FROM base_extended as conda_env_dev
+FROM --platform=$TARGETPLATFORM base_extended AS conda_env_dev
 
 ARG MORPHEUS_ROOT_HOST
 ARG CUDA_MAJOR_VER
 ARG CUDA_MINOR_VER
 ARG CONDA_CHANNEL_ALIAS
+ARG REAL_ARCH
 
 # Copy the development dependencies file
-COPY ${MORPHEUS_ROOT_HOST}/conda/environments/dev_cuda-${CUDA_MAJOR_VER}${CUDA_MINOR_VER}_arch-x86_64.yaml ./conda/environments/dev.yaml
+COPY ${MORPHEUS_ROOT_HOST}/conda/environments/dev_cuda-${CUDA_MAJOR_VER}${CUDA_MINOR_VER}_arch-${REAL_ARCH}.yaml ./conda/environments/dev.yaml
 
 # Update the morpheus environment
 RUN --mount=type=cache,id=conda_pkgs,target=/opt/conda/pkgs,sharing=locked \
+    --mount=type=cache,id=pip_cache,target=/root/.cache/pip,sharing=locked \
     # Temp add channel_alias to get around conda 404 errors
     conda config --env --set channel_alias ${CONDA_CHANNEL_ALIAS} &&\
     /opt/conda/bin/conda env update --solver=libmamba -n morpheus --file conda/environments/dev.yaml &&\
@@ -235,7 +241,7 @@ RUN --mount=type=cache,id=conda_pkgs,target=/opt/conda/pkgs,sharing=locked \
 
 # ============ Stage: conda_bld_morpheus ============
 # Now build the morpheus conda package
-FROM base_extended as conda_bld_morpheus
+FROM --platform=$TARGETPLATFORM base_extended AS conda_bld_morpheus
 
 ARG MORPHEUS_ROOT_HOST
 ARG CUDA_MAJOR_VER
@@ -263,6 +269,7 @@ COPY . ./
 
 RUN --mount=type=cache,id=workspace_cache,target=/workspace/.cache,sharing=locked \
     --mount=type=cache,id=conda_pkgs,target=/opt/conda/pkgs,sharing=locked \
+    --mount=type=cache,id=pip_cache,target=/root/.cache/pip,sharing=locked \
     # Install git-lfs before running the build to avoid errors during conda build
     /opt/conda/bin/mamba install -y -n base -c conda-forge "git-lfs" &&\
     source activate base &&\
@@ -275,7 +282,7 @@ RUN --mount=type=cache,id=workspace_cache,target=/workspace/.cache,sharing=locke
 
 # ============ Stage: build_docs ============
 # Now build the morpheus docs
-FROM conda_env_dev as build_docs
+FROM --platform=$TARGETPLATFORM conda_env_dev AS build_docs
 
 ARG MORPHEUS_ROOT_HOST
 
@@ -285,6 +292,7 @@ COPY . ./
 RUN --mount=type=cache,id=workspace_cache,target=/workspace/.cache,sharing=locked \
     --mount=type=bind,from=conda_bld_morpheus,source=/opt/conda/conda-bld,target=/opt/conda/conda-bld \
     --mount=type=cache,id=conda_pkgs,target=/opt/conda/pkgs,sharing=locked \
+    --mount=type=cache,id=pip_cache,target=/root/.cache/pip,sharing=locked \
     source activate morpheus &&\
     CONDA_ALWAYS_YES=true /opt/conda/bin/mamba install -n morpheus \
         -c local \
@@ -304,16 +312,18 @@ RUN --mount=type=cache,id=workspace_cache,target=/workspace/.cache,sharing=locke
 
 # ============ Stage: runtime_conda_create ============
 # Setup conda for the runtime environment
-FROM base_extended as runtime_conda_create
+FROM --platform=$TARGETPLATFORM base_extended AS runtime_conda_create
 ARG MORPHEUS_ROOT_HOST
 ARG CUDA_MAJOR_VER
 ARG CUDA_MINOR_VER
+ARG REAL_ARCH
 
-COPY "${MORPHEUS_ROOT_HOST}/conda/environments/runtime_cuda-${CUDA_MAJOR_VER}${CUDA_MINOR_VER}_arch-x86_64.yaml" "./conda/environments/"
+COPY "${MORPHEUS_ROOT_HOST}/conda/environments/runtime_cuda-${CUDA_MAJOR_VER}${CUDA_MINOR_VER}_arch-${REAL_ARCH}.yaml" "./conda/environments/"
 
 # Mount Morpheus conda package build in `conda_bld_morpheus`
 RUN --mount=type=bind,from=conda_bld_morpheus,source=/opt/conda/conda-bld,target=/opt/conda/conda-bld \
     --mount=type=cache,id=conda_pkgs,target=/opt/conda/pkgs,sharing=locked \
+    --mount=type=cache,id=pip_cache,target=/root/.cache/pip,sharing=locked \
     # CVE-2018-20225 for the base pip, not the env one
     # conda will ignore the request to remove pip
     python -m pip uninstall -y pip && \
@@ -331,12 +341,12 @@ RUN --mount=type=bind,from=conda_bld_morpheus,source=/opt/conda/conda-bld,target
         -c defaults \
         morpheus && \
     /opt/conda/bin/conda env update --solver=libmamba -n morpheus --file \
-        conda/environments/runtime_cuda-${CUDA_MAJOR_VER}${CUDA_MINOR_VER}_arch-x86_64.yaml
+        conda/environments/runtime_cuda-${CUDA_MAJOR_VER}${CUDA_MINOR_VER}_arch-${REAL_ARCH}.yaml
 
 # ============ Stage: git_clone ============
 # Perform a clone of the git repository this ensures that when we copy files from the source repository, we aren't
 # unintentionally including build artifacts or other files that shouldn't be in the final image
-FROM conda_env_dev as git_clone
+FROM --platform=$TARGETPLATFORM conda_env_dev AS git_clone
 
 ARG MORPHEUS_ROOT_HOST
 
@@ -351,7 +361,7 @@ RUN --mount=type=bind,source=.,target=/opt/host_repo \
 
 # ============ Stage: runtime ============
 # Setup container for runtime environment
-FROM runtime_conda_create as runtime
+FROM --platform=$TARGETPLATFORM runtime_conda_create AS runtime
 
 ARG MORPHEUS_ROOT_HOST
 
@@ -375,7 +385,7 @@ CMD [ "morpheus" ]
 
 # ============ Stage: development ============
 # Install and configure development only packages
-FROM conda_env_dev as development
+FROM --platform=$TARGETPLATFORM conda_env_dev AS development
 
 ARG CUDA_MAJOR_VER
 ARG CUDA_MINOR_VER
@@ -391,7 +401,8 @@ RUN --mount=type=cache,id=apt,target=/var/cache/apt \
         libcublas-dev-${CUDA_MAJOR_VER}-${CUDA_MINOR_VER} \
         libcufft-dev-${CUDA_MAJOR_VER}-${CUDA_MINOR_VER} \
         libcurand-dev-${CUDA_MAJOR_VER}-${CUDA_MINOR_VER} \
-        libcusolver-dev-${CUDA_MAJOR_VER}-${CUDA_MINOR_VER} && \
+        libcusolver-dev-${CUDA_MAJOR_VER}-${CUDA_MINOR_VER} \
+        openjdk-11-jre-headless && \
     rm -rf /var/lib/apt/lists/*
 
 # Install camouflage needed for unittests to mock a triton server
@@ -407,7 +418,7 @@ RUN git config --global --add safe.directory "*"
 
 # ============ Stage: python_debug_bld ===========
 # Configure and build cpython with debugging symbols
-FROM development as development_pydbg
+FROM --platform=$TARGETPLATFORM development AS development_pydbg
 
 COPY ${MORPHEUS_ROOT_HOST}/ci/conda/recipes/python-dbg/ ./ci/conda/recipes/python-dbg
 COPY ${MORPHEUS_ROOT_HOST}/ci/conda/recipes/run_conda_build.sh ./ci/conda/recipes/run_conda_build.sh

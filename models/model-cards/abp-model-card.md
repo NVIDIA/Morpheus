@@ -1,5 +1,5 @@
 <!--
-SPDX-FileCopyrightText: Copyright (c) 2023-2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+SPDX-FileCopyrightText: Copyright (c) 2023-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 SPDX-License-Identifier: Apache-2.0
 
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -76,7 +76,7 @@ limitations under the License.
 ## Training Dataset:
 
 **Link:**
-* https://github.com/nv-morpheus/Morpheus/blob/branch-24.10/models/datasets/training-data/abp-sample-nvsmi-training-data.json  <br>
+* https://github.com/nv-morpheus/Morpheus/blob/branch-25.02/models/datasets/training-data/abp-sample-nvsmi-training-data.json  <br>
 
 **Properties (Quantity, Dataset Descriptions, Sensors):**
 * Sample dataset consists of over 1000 `nvidia-smi` outputs <br>
@@ -84,7 +84,7 @@ limitations under the License.
 ## Evaluation Dataset:
 
 **Link:**
-* https://github.com/nv-morpheus/Morpheus/blob/branch-24.10/models/datasets/validation-data/abp-validation-data.jsonlines  <br>
+* https://github.com/nv-morpheus/Morpheus/blob/branch-25.02/models/datasets/validation-data/abp-validation-data.jsonlines  <br>
 
 **Properties (Quantity, Dataset Descriptions, Sensors):**
 * Sample dataset consists of over 1000 `nvidia-smi` outputs <br>
@@ -146,7 +146,7 @@ NVIDIA believes Trustworthy AI is a shared responsibility and we have establishe
 ## Model Card ++ Safety & Security Subcard
 
 ### Link the location of the repository for the training dataset.
-* https://github.com/nv-morpheus/Morpheus/blob/branch-24.10/models/datasets/training-data/abp-sample-nvsmi-training-data.json
+* https://github.com/nv-morpheus/Morpheus/blob/branch-25.02/models/datasets/training-data/abp-sample-nvsmi-training-data.json
 
 ### Describe the life critical impact (if present).
 * None

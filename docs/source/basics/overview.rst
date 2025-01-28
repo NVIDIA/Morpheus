@@ -1,5 +1,5 @@
 ..
-   SPDX-FileCopyrightText: Copyright (c) 2022-2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+   SPDX-FileCopyrightText: Copyright (c) 2022-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
    SPDX-License-Identifier: Apache-2.0
 
    Licensed under the Apache License, Version 2.0 (the "License");
@@ -106,6 +106,15 @@ queried in the same manner:
    --seq_length INTEGER            [required]
    --max_workspace_size INTEGER    [default: 16000]
    --help                          Show this message and exit.
+
+ONNX To TensorRT
+----------------
+The ONNX to TensorRT (TRT) conversion utility requires additional packages, which can be installed using the following command:
+```bash
+conda env update --solver=libmamba -n morpheus --file conda/environments/model-utils_cuda-125_arch-$(arch).yaml
+```
+
+Example usage of the ONNX to TRT conversion utility can be found in `models/README.md <https://github.com/nv-morpheus/Morpheus/blob/branch-25.02/models/README.md#generating-trt-models-from-onnx>`_.
 
 AutoComplete
 ------------

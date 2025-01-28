@@ -1,4 +1,4 @@
-# Copyright (c) 2022-2024, NVIDIA CORPORATION.
+# Copyright (c) 2022-2025, NVIDIA CORPORATION.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -113,7 +113,7 @@ def _file_type_name_to_enum(file_type: str) -> FileTypes:
     help="The location to cache data such as S3 downloads and pre-processed data",
 )
 @click.option("--log_level",
-              default=logging.getLevelName(Config().log_level),
+              default="INFO",
               type=click.Choice(get_log_levels(), case_sensitive=False),
               callback=parse_log_level,
               help="Specify the logging level to use.")
@@ -142,9 +142,7 @@ def _file_type_name_to_enum(file_type: str) -> FileTypes:
               type=click.Choice(["AUTO", "JSON", "CSV", "PARQUET"], case_sensitive=False),
               default="JSON",
               help="Override the detected file type. Values can be 'AUTO', 'JSON', 'CSV', or 'PARQUET'.",
-              callback=lambda _,
-              __,
-              value: None if value is None else _file_type_name_to_enum(value))
+              callback=lambda _, __, value: None if value is None else _file_type_name_to_enum(value))
 @click.option('--watch_inputs',
               type=bool,
               is_flag=True,

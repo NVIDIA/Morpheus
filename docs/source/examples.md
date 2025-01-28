@@ -1,5 +1,5 @@
 <!--
-SPDX-FileCopyrightText: Copyright (c) 2022-2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+SPDX-FileCopyrightText: Copyright (c) 2022-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 SPDX-License-Identifier: Apache-2.0
 
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -40,7 +40,7 @@ Morpheus supports multiple environments, each environment is intended to support
 
 In addition to this many of the examples utilize the Morpheus Triton Models container which can be obtained by running the following command:
 ```bash
-docker pull nvcr.io/nvidia/morpheus/morpheus-tritonserver-models:24.10
+docker pull nvcr.io/nvidia/morpheus/morpheus-tritonserver-models:25.02
 ```
 
 The following are the supported environments:

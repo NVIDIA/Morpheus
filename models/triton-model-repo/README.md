@@ -1,5 +1,5 @@
 <!--
-SPDX-FileCopyrightText: Copyright (c) 2022-2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+SPDX-FileCopyrightText: Copyright (c) 2022-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 SPDX-License-Identifier: Apache-2.0
 
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -40,7 +40,7 @@ The downside of using symlinks is that the entire Morpheus model repo must be vo
 ## Models Container
 The models in this directory are available in a pre-built container image containing Triton Inference Server, along with the models themselves. The container image is available on NGC and can be pulled using the following command:
 ```bash
-docker pull nvcr.io/nvidia/morpheus/morpheus-tritonserver-models:24.10
+docker pull nvcr.io/nvidia/morpheus/morpheus-tritonserver-models:25.02
 ```
 
 Those users who are working on training their own models have two options available:
@@ -73,7 +73,7 @@ docker run --rm --gpus=all -p 8000:8000 -p 8001:8001 -p 8002:8002 -v $PWD:/model
 
 To load a TensorRT model, it first must be compiled with the `morpheus tools onnx-to-trt` utility. This utility requires additional packages to be installed. From the root of the Morpheus repo, install them with:
 ```bash
-conda env update --solver=libmamba -n morpheus --file conda/environments/model-utils_cuda-125_arch-x86_64.yaml
+conda env update --solver=libmamba -n morpheus --file conda/environments/model-utils_cuda-125_arch-$(arch).yaml
 ```
 
 Then build the TensorRT model with (refer `triton-model-repo/sid-minibert-trt/1/README.md` for more info):

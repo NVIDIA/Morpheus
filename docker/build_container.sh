@@ -1,5 +1,5 @@
 #!/bin/bash
-# SPDX-FileCopyrightText: Copyright (c) 2021-2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-FileCopyrightText: Copyright (c) 2021-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 # SPDX-License-Identifier: Apache-2.0
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -24,6 +24,20 @@ popd &> /dev/null
 DOCKER_IMAGE_NAME=${DOCKER_IMAGE_NAME:?"Must set \$DOCKER_IMAGE_NAME to build. Use the dev/release scripts to set these automatically"}
 DOCKER_IMAGE_TAG=${DOCKER_IMAGE_TAG:?"Must set \DOCKER_IMAGE_TAG to build. Use the dev/release scripts to set these automatically"}
 DOCKER_TARGET=${DOCKER_TARGET:-"runtime"}
+
+if [ "${DOCKER_TARGET_ARCH}" == "amd64" ]; then
+    REAL_ARCH="x86_64"
+elif [ "${DOCKER_TARGET_ARCH}" == "arm64" ]; then
+    REAL_ARCH="aarch64"
+else
+    echo "Invalid DOCKER_TARGET_ARCH: ${DOCKER_TARGET_ARCH}"
+    exit 1
+fi
+
+if [ ${REAL_ARCH} != $(arch) ]; then
+    echo -n "Performing cross-build for ${REAL_ARCH} on $(arch), please ensure qemu is installed, "
+    echo "details in ${MORPHEUS_ROOT}/external/utilities/ci/runner/README.md"
+fi
 
 DOCKER_EXTRA_ARGS=${DOCKER_EXTRA_ARGS:-""}
 
@@ -56,6 +70,8 @@ DOCKER_ARGS="${DOCKER_ARGS} --build-arg MORPHEUS_SUPPORT_DOCA=${MORPHEUS_SUPPORT
 DOCKER_ARGS="${DOCKER_ARGS} --build-arg MORPHEUS_BUILD_MORPHEUS_LLM=${MORPHEUS_BUILD_MORPHEUS_LLM}"
 DOCKER_ARGS="${DOCKER_ARGS} --build-arg MORPHEUS_BUILD_MORPHEUS_DFP=${MORPHEUS_BUILD_MORPHEUS_DFP}"
 DOCKER_ARGS="${DOCKER_ARGS} --build-arg PYTHON_VER=${PYTHON_VER}"
+DOCKER_ARGS="${DOCKER_ARGS} --build-arg REAL_ARCH=${REAL_ARCH}"
+DOCKER_ARGS="${DOCKER_ARGS} --platform=linux/${DOCKER_TARGET_ARCH}"
 DOCKER_ARGS="${DOCKER_ARGS} --network=host"
 
 # Last add any extra args (duplicates override earlier ones)
@@ -75,6 +91,8 @@ echo "   MORPHEUS_ROOT_HOST         : ${MORPHEUS_ROOT_HOST}"
 echo "   MORPHEUS_SUPPORT_DOCA      : ${MORPHEUS_SUPPORT_DOCA}"
 echo "   MORPHEUS_BUILD_MORPHEUS_LLM: ${MORPHEUS_BUILD_MORPHEUS_LLM}"
 echo "   PYTHON_VER                 : ${PYTHON_VER}"
+echo "   TARGET_ARCH                : ${DOCKER_TARGET_ARCH}"
+echo "   REAL_ARCH                  : ${REAL_ARCH}"
 
 echo ""
 echo "   COMMAND: docker build ${DOCKER_ARGS} -f ${SCRIPT_DIR}/Dockerfile ."

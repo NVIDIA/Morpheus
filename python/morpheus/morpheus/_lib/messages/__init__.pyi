@@ -73,6 +73,7 @@ class ControlMessage():
     def task_type(self) -> ControlMessageType: ...
     @typing.overload
     def task_type(self, task_type: ControlMessageType) -> None: ...
+    def tensor_count(self) -> int: ...
     @typing.overload
     def tensors(self) -> TensorMemory: ...
     @typing.overload
@@ -265,4 +266,4 @@ class InferenceMemoryFIL(InferenceMemory, TensorMemory):
     def seq_ids(self, arg1: object) -> None:
         pass
     pass
-__version__ = '24.10.0'
+__version__ = '25.2.0'

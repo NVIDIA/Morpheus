@@ -1,5 +1,5 @@
 <!--
-SPDX-FileCopyrightText: Copyright (c) 2023-2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+SPDX-FileCopyrightText: Copyright (c) 2023-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 SPDX-License-Identifier: Apache-2.0
 
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -18,13 +18,19 @@ limitations under the License.
 # Retrieval Augmented Generation (RAG) Pipeline
 
 ## Supported Environments
-All environments require additional Conda packages which can be installed with either the `conda/environments/all_cuda-125_arch-x86_64.yaml` or `conda/environments/examples_cuda-125_arch-x86_64.yaml` environment files. This example also requires the [VDB upload](../vdb_upload/README.md) pipeline to have been run previously.
+All environments require additional Conda packages which can be installed with either the `conda/environments/all_cuda-125_arch-$(arch).yaml` or `conda/environments/examples_cuda-125_arch-$(arch).yaml` environment files. This example also requires the [VDB upload](../vdb_upload/README.md) pipeline to have been run previously.
 | Environment | Supported | Notes |
 |-------------|-----------|-------|
 | Conda | ✔ | |
 | Morpheus Docker Container | ✔ | Requires launching Milvus on the host |
 | Morpheus Release Container | ✔ | Requires launching Milvus on the host |
 | Dev Container | ✘ |  |
+
+### Supported Architectures
+| Architecture | Supported | Issue |
+|--------------|-----------|-------|
+| x86_64 | ✔ | |
+| aarch64 | ✘ | [#2122](https://github.com/nv-morpheus/Morpheus/issues/2122) |
 
 ## Table of Contents
 

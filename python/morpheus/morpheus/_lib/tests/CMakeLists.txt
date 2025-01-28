@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: Copyright (c) 2022-2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-FileCopyrightText: Copyright (c) 2022-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 # SPDX-License-Identifier: Apache-2.0
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -149,6 +149,12 @@ add_morpheus_test(
   NAME multi_slices
   FILES
     test_multi_slices.cpp
+)
+
+add_morpheus_test(
+  NAME controllers
+  FILES
+    controllers/test_monitor_controller.cpp
 )
 
 add_morpheus_test(

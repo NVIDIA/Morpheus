@@ -1,4 +1,4 @@
-# Copyright (c) 2023-2024, NVIDIA CORPORATION.
+# Copyright (c) 2023-2025, NVIDIA CORPORATION.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -119,18 +119,32 @@ class WriteToFileController:
 
     def node_fn(self, obs: mrc.Observable, sub: mrc.Subscriber):
 
-        # Open up the file handle
-        with open(self._output_file, "a", encoding='UTF-8') as out_file:
+        # When writing to a parquet file, we need to open the file in binary mode
+        if self._file_type == FileTypes.PARQUET:
+            with open(self._output_file, "wb") as out_file:
 
-            def write_to_file(x: MessageMeta):
+                def write_to_file(x: MessageMeta):
 
-                lines = self._convert_to_strings(x.df)
+                    x.df.to_parquet(out_file)
 
-                out_file.writelines(lines)
+                    if self._flush:
+                        out_file.flush()
 
-                if self._flush:
-                    out_file.flush()
-
-                return x
+                    return x
 
             obs.pipe(ops.map(write_to_file)).subscribe(sub)
+
+        else:
+            with open(self._output_file, "a", encoding='UTF-8') as out_file:
+
+                def write_to_file(x: MessageMeta):
+
+                    lines = self._convert_to_strings(x.df)
+                    out_file.writelines(lines)
+
+                    if self._flush:
+                        out_file.flush()
+
+                    return x
+
+                obs.pipe(ops.map(write_to_file)).subscribe(sub)

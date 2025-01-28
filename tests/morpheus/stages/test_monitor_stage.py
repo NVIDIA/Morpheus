@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# SPDX-FileCopyrightText: Copyright (c) 2022-2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-FileCopyrightText: Copyright (c) 2022-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 # SPDX-License-Identifier: Apache-2.0
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -59,11 +59,12 @@ def test_constructor(config: Config):
     assert stage._mc._determine_count_fn is two_x
 
 
+@pytest.mark.cpu_mode
 @mock.patch('morpheus.controllers.monitor_controller.MorpheusTqdm')
 def test_start_async(mock_morph_tqdm: mock.MagicMock, config: Config):
     mock_morph_tqdm.return_value = mock_morph_tqdm
 
-    stage = MonitorStage(config, log_level=logging.WARNING)
+    stage = MonitorStage(config, delayed_start=False, log_level=logging.WARNING)
     assert stage._mc._progress is None
 
     asyncio.run(stage.start_async())
@@ -72,11 +73,12 @@ def test_start_async(mock_morph_tqdm: mock.MagicMock, config: Config):
     assert stage._mc._progress is mock_morph_tqdm
 
 
+@pytest.mark.cpu_mode
 @mock.patch('morpheus.controllers.monitor_controller.MorpheusTqdm')
 async def test_join(mock_morph_tqdm: mock.MagicMock, config: Config):
     mock_morph_tqdm.return_value = mock_morph_tqdm
 
-    stage = MonitorStage(config, log_level=logging.WARNING)
+    stage = MonitorStage(config, delayed_start=False, log_level=logging.WARNING)
     assert stage._mc._progress is None
 
     # Calling join is a noop if we are stopped
@@ -88,11 +90,12 @@ async def test_join(mock_morph_tqdm: mock.MagicMock, config: Config):
     mock_morph_tqdm.close.assert_called_once()
 
 
+@pytest.mark.cpu_mode
 @mock.patch('morpheus.controllers.monitor_controller.MorpheusTqdm')
 def test_refresh(mock_morph_tqdm: mock.MagicMock, config: Config):
     mock_morph_tqdm.return_value = mock_morph_tqdm
 
-    stage = MonitorStage(config, log_level=logging.WARNING)
+    stage = MonitorStage(config, delayed_start=False, log_level=logging.WARNING)
     assert stage._mc._progress is None
 
     asyncio.run(stage.start_async())
@@ -151,6 +154,7 @@ def test_progress_sink(mock_morph_tqdm: mock.MagicMock, config: Config):
     mock_morph_tqdm.update.assert_called_once_with(n=12)
 
 
+@pytest.mark.cpu_mode
 @pytest.mark.usefixtures("reset_loglevel")
 @pytest.mark.parametrize('log_level', [logging.CRITICAL, logging.ERROR, logging.WARNING, logging.INFO, logging.DEBUG])
 @mock.patch('morpheus.stages.general.monitor_stage.MonitorController.sink_on_completed', autospec=True)
@@ -179,7 +183,7 @@ def test_log_level(mock_progress_sink: mock.MagicMock,
     assert mock_sink_on_completed.call_count == expected_call_count
 
 
-@pytest.mark.gpu_and_cpu_mode
+@pytest.mark.cpu_mode
 def test_thread(config: Config, morpheus_log_level: int):
     """
     Test ensures the monitor stage executes on the same thread as the parent stage

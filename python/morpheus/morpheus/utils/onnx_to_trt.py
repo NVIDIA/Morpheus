@@ -1,4 +1,4 @@
-# Copyright (c) 2021-2024, NVIDIA CORPORATION.
+# Copyright (c) 2021-2025, NVIDIA CORPORATION.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -20,13 +20,15 @@ logger = logging.getLogger(__name__)
 
 try:
     import tensorrt as trt
-except ImportError:
-    logger.error("The onnx_to_trt module requires the TensorRT runtime and python package to be installed. "
-                 "To install the `tensorrt` python package, follow the instructions located "
-                 "here: https://docs.nvidia.com/deeplearning/tensorrt/install-guide/index.html#installing-pip")
-    raise
+except ImportError as e:
+    raise ImportError(
+        "The ONNX to TensorRT conversion utility requires additional packages, which can be installed using the "
+        "following command:\n"
+        "conda env update --solver=libmamba -n morpheus --file "
+        "conda/environments/model-utils_cuda-125_arch-$(arch).yaml") from e
 
 
+# pylint: disable=no-member
 def gen_engine(config: ConfigOnnxToTRT):
     """
     This class converts an Onnx model to a TRT model.

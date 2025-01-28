@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# SPDX-FileCopyrightText: Copyright (c) 2022-2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-FileCopyrightText: Copyright (c) 2022-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 # SPDX-License-Identifier: Apache-2.0
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,6 +16,7 @@
 
 import importlib.util
 import os
+import types
 
 from _utils import TEST_DIRS
 
@@ -81,7 +82,7 @@ def test_dfp_namespace_update(tmp_path):
         assert False, "old dfp imports are not updated to the new namespace"
 
 
-def test_llm_namespace_update(tmp_path):
+def test_llm_namespace_update(tmp_path, pymilvus: types.ModuleType):  # pylint: disable=unused-argument
     '''
     Update the LLM namespace imports and verify the imports work.
     '''

@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# SPDX-FileCopyrightText: Copyright (c) 2022-2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-FileCopyrightText: Copyright (c) 2022-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 # SPDX-License-Identifier: Apache-2.0
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,6 +15,7 @@
 # limitations under the License.
 
 import random
+import types
 
 import pytest
 
@@ -32,6 +33,14 @@ from morpheus.utils.module_ids import MORPHEUS_MODULE_NAMESPACE
 from morpheus.utils.module_ids import TO_CONTROL_MESSAGE
 from morpheus_llm.service.vdb.milvus_vector_db_service import MilvusVectorDBService
 from morpheus_llm.stages.output.write_to_vector_db_stage import WriteToVectorDBStage
+
+
+@pytest.fixture(name="pymilvus", scope='session', autouse=True)
+def pymilvus_fixture(pymilvus: types.ModuleType):
+    """
+    Fixture to ensure pymilvus is installed
+    """
+    yield pymilvus
 
 
 def get_test_df(num_input_rows):

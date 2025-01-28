@@ -1,5 +1,5 @@
 <!--
-SPDX-FileCopyrightText: Copyright (c) 2022-2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+SPDX-FileCopyrightText: Copyright (c) 2022-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 SPDX-License-Identifier: Apache-2.0
 
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -44,6 +44,7 @@ pip install -r examples/developer_guide/2_2_rabbitmq/requirements.txt
 ## Launch the reader
 In a second terminal from the root of the Morpheus repo execute:
 ```bash
+export MORPHEUS_ROOT=$(pwd)
 python examples/developer_guide/2_2_rabbitmq/read_simple.py
 ```
 

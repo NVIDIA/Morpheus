@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: Copyright (c) 2023-2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-FileCopyrightText: Copyright (c) 2023-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 # SPDX-License-Identifier: Apache-2.0
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -29,4 +29,4 @@ morpheus --log_level=DEBUG \
     add-class \
     filter --filter_source=TENSOR \
     serialize --exclude '^_ts_' \
-    to-file --filename=detections.jsonlines --overwrite
+    to-file --filename=.tmp/output/nlp_si_detections.jsonlines --overwrite

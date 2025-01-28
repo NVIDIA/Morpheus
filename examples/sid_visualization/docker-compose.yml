@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: Copyright (c) 2022-2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-FileCopyrightText: Copyright (c) 2022-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 # SPDX-License-Identifier: Apache-2.0
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -20,10 +20,11 @@ x-with-gpus: &with_gpus
         devices:
           - capabilities:
               - gpu
+            count: all
 
 services:
   triton:
-    image: nvcr.io/nvidia/morpheus/morpheus-tritonserver-models:24.10
+    image: nvcr.io/nvidia/morpheus/morpheus-tritonserver-models:25.02
     <<: *with_gpus
     command: "tritonserver --exit-on-error=false --model-control-mode=explicit --load-model sid-minibert-onnx --model-repository=/models/triton-model-repo"
     environment:

@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: Copyright (c) 2023-2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-FileCopyrightText: Copyright (c) 2023-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 # SPDX-License-Identifier: Apache-2.0
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -41,7 +41,7 @@ def check_inf_message(msg: ControlMessage,
                       expected_input__0: cp.ndarray):
     assert isinstance(msg, ControlMessage)
     assert msg.payload().count == expected_mess_count
-    assert msg.tensors().count == expected_count
+    assert msg.tensor_count() == expected_count
 
     df = msg.payload().get_data()
     assert 'flow_id' in df

@@ -1,4 +1,4 @@
-# Copyright (c) 2024, NVIDIA CORPORATION.
+# Copyright (c) 2024-2025, NVIDIA CORPORATION.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -15,4 +15,4 @@
 IMPORT_ERROR_MESSAGE = (
     "{package} not found. Install it and other additional dependencies by running the following command:\n"
     "`conda env update --solver=libmamba -n morpheus "
-    "--file conda/environments/examples_cuda-125_arch-x86_64.yaml`")
+    "--file conda/environments/examples_cuda-125_arch-$(arch).yaml`")

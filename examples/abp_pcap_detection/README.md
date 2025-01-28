@@ -1,5 +1,5 @@
 <!--
-SPDX-FileCopyrightText: Copyright (c) 2021-2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+SPDX-FileCopyrightText: Copyright (c) 2021-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 SPDX-License-Identifier: Apache-2.0
 
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -30,13 +30,13 @@ To run this example, an instance of Triton Inference Server and a sample dataset
 
 ### Triton Inference Server
 ```bash
-docker pull nvcr.io/nvidia/morpheus/morpheus-tritonserver-models:24.10
+docker pull nvcr.io/nvidia/morpheus/morpheus-tritonserver-models:25.02
 ```
 
 ##### Deploy Triton Inference Server
 Run the following to launch Triton and load the `abp-pcap-xgb` model:
 ```bash
-docker run --rm --gpus=all -p 8000:8000 -p 8001:8001 -p 8002:8002 --name tritonserver nvcr.io/nvidia/morpheus/morpheus-tritonserver-models:24.10 tritonserver --model-repository=/models/triton-model-repo --exit-on-error=false --model-control-mode=explicit --load-model abp-pcap-xgb
+docker run --rm --gpus=all -p 8000:8000 -p 8001:8001 -p 8002:8002 --name tritonserver nvcr.io/nvidia/morpheus/morpheus-tritonserver-models:25.02 tritonserver --model-repository=/models/triton-model-repo --exit-on-error=false --model-control-mode=explicit --load-model abp-pcap-xgb
 ```
 
 ##### Verify Model Deployment
@@ -97,7 +97,7 @@ python examples/abp_pcap_detection/run.py
 ```
 Note: Both Morpheus and Triton Inference Server containers must have access to the same GPUs in order for this example to work.
 
-The pipeline will process the input `abp_pcap_dump.jsonlines` sample data and write it to `pcap_out.jsonlines`.
+The pipeline will process the input `abp_pcap_dump.jsonlines` sample data and write it to `.tmp/output/pcap_out.jsonlines`.
 
 ### CLI Example
 The above example is illustrative of using the Python API to build a custom Morpheus Pipeline.
@@ -118,6 +118,6 @@ morpheus --log_level INFO --plugin "examples/abp_pcap_detection/abp_pcap_preproc
     monitor --description "Add classification rate" --unit "add-class" \
     serialize \
     monitor --description "Serialize rate" --unit ser \
-    to-file --filename "pcap_out.jsonlines" --overwrite \
+    to-file --filename ".tmp/output/pcap_out_cli.jsonlines" --overwrite \
     monitor --description "Write to file rate" --unit "to-file"
 ```

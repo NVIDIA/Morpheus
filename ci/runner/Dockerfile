@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: Copyright (c) 2022-2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-FileCopyrightText: Copyright (c) 2022-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 # SPDX-License-Identifier: Apache-2.0
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -22,15 +22,18 @@ ARG LINUX_DISTRO=ubuntu
 ARG LINUX_VER=22.04
 ARG PROJ_NAME=morpheus
 ARG PYTHON_VER=3.10
-ARG ARCH=x86_64
+ARG REAL_ARCH=x86_64
+
 
 # Configure the base docker img
-FROM ${FROM_IMAGE}:cuda${CUDA_VER}-${LINUX_DISTRO}${LINUX_VER}-py${PYTHON_VER} AS base
+FROM --platform=$TARGETPLATFORM ${FROM_IMAGE}:cuda${CUDA_VER}-${LINUX_DISTRO}${LINUX_VER}-py${PYTHON_VER} AS base
 
 ARG PROJ_NAME
 ARG CUDA_SHORT_VER
 
 SHELL ["/bin/bash",  "-c"]
+
+ENV REAL_ARCH=${REAL_ARCH}
 
 # Create conda environment
 COPY ./dependencies.yaml /tmp/conda/
@@ -38,16 +41,17 @@ COPY ./dependencies.yaml /tmp/conda/
 # ============ build ==================
 FROM base as build
 
-# Add any build only dependencies here.ARG ARCH
+# Add any build only dependencies here.
 ARG CUDA_SHORT_VER
 ARG PROJ_NAME
 ARG PYTHON_VER
+ARG REAL_ARCH
 
 RUN rapids-dependency-file-generator \
       --config /tmp/conda/dependencies.yaml \
       --output conda \
       --file-key build \
-      --matrix "cuda=${CUDA_SHORT_VER};arch=${ARCH};py=${PYTHON_VER}" > /tmp/conda/env.yaml && \
+      --matrix "cuda=${CUDA_SHORT_VER};arch=${REAL_ARCH};py=${PYTHON_VER}" > /tmp/conda/env.yaml && \
     CONDA_ALWAYS_YES=true /opt/conda/bin/conda env create -n ${PROJ_NAME} -q --file /tmp/conda/env.yaml && \
     sed -i "s/conda activate base/conda activate ${PROJ_NAME}/g" ~/.bashrc && \
     conda clean -afy && \
@@ -64,7 +68,7 @@ RUN apt update && \
         libtool \
         automake && \
     apt clean && \
-    /tmp/doca/doca.sh /tmp/doca && \
+    PKG_ARCH=${TARGETARCH} /tmp/doca/doca.sh /tmp/doca && \
     rm -rf /tmp/doca
 
 # ============ test ==================
@@ -72,7 +76,7 @@ FROM base as test
 
 # Add any test only dependencies here.
 
-ARG ARCH
+ARG REAL_ARCH
 ARG CUDA_SHORT_VER
 ARG PROJ_NAME
 ARG PYTHON_VER
@@ -88,7 +92,7 @@ RUN rapids-dependency-file-generator \
       --config /tmp/conda/dependencies.yaml \
       --output conda \
       --file-key test \
-      --matrix "cuda=${CUDA_SHORT_VER};arch=${ARCH};py=${PYTHON_VER}" > /tmp/conda/env.yaml && \
+      --matrix "cuda=${CUDA_SHORT_VER};arch=${REAL_ARCH};py=${PYTHON_VER}" > /tmp/conda/env.yaml && \
     CONDA_ALWAYS_YES=true /opt/conda/bin/conda env create -n ${PROJ_NAME} -q --file /tmp/conda/env.yaml && \
     sed -i "s/conda activate base/conda activate ${PROJ_NAME}/g" ~/.bashrc && \
     conda clean -afy && \

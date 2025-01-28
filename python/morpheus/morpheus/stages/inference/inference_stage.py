@@ -1,4 +1,4 @@
-# Copyright (c) 2021-2024, NVIDIA CORPORATION.
+# Copyright (c) 2021-2025, NVIDIA CORPORATION.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -244,7 +244,7 @@ class InferenceStage(ControlMessageStage):
                         nonlocal outstanding_requests
                         nonlocal batch_offset
                         mess = self._convert_one_response(output_message, inner_batch, resp, batch_offset)
-                        batch_offset += inner_batch.tensors().count
+                        batch_offset += inner_batch.tensor_count()
                         outstanding_requests -= 1
 
                         batch_future.set_result(mess)
@@ -359,13 +359,13 @@ class InferenceStage(ControlMessageStage):
         seq_count = seq_ids[-1, 0].item() + 1 - seq_offset
 
         # Two scenarios:
-        if (inf.payload().count == inf.tensors().count):
+        if (inf.payload().count == inf.tensor_count()):
             assert seq_count == res.count
 
             # In message and out message have same count. Just use probs as is
             probs[seq_offset:seq_offset + seq_count, :] = resp_probs
         else:
-            assert inf.tensors().count == res.count
+            assert inf.tensor_count() == res.count
 
             mess_ids = seq_ids[:, 0].get().tolist()
 

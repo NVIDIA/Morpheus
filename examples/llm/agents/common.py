@@ -1,4 +1,4 @@
-# Copyright (c) 2023-2024, NVIDIA CORPORATION.
+# Copyright (c) 2023-2025, NVIDIA CORPORATION.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -18,7 +18,7 @@ from langchain.agents import AgentType
 from langchain.agents import initialize_agent
 from langchain.agents import load_tools
 from langchain.agents.agent import AgentExecutor
-from langchain.llms.openai import OpenAI
+from langchain_openai import OpenAI
 
 from morpheus.config import Config
 from morpheus.pipeline.linear_pipeline import LinearPipeline

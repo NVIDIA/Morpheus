@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: Copyright (c) 2023-2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-FileCopyrightText: Copyright (c) 2023-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 # SPDX-License-Identifier: Apache-2.0
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -32,8 +32,8 @@ try:
     from langchain.agents import initialize_agent
     from langchain.callbacks.manager import AsyncCallbackManagerForToolRun
     from langchain.callbacks.manager import CallbackManagerForToolRun
-    from langchain_community.chat_models.openai import ChatOpenAI
     from langchain_core.tools import BaseTool
+    from langchain_openai import ChatOpenAI
 except ImportError:
     pass
 

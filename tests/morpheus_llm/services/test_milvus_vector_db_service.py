@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# SPDX-FileCopyrightText: Copyright (c) 2023-2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-FileCopyrightText: Copyright (c) 2023-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 # SPDX-License-Identifier: Apache-2.0
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -17,12 +17,10 @@
 import json
 import random
 import string
+import types
 
 import numpy as np
-import pymilvus
 import pytest
-from pymilvus import DataType
-from pymilvus import MilvusException
 
 import cudf
 
@@ -31,21 +29,39 @@ from morpheus_llm.service.vdb.milvus_vector_db_service import MAX_STRING_LENGTH_
 from morpheus_llm.service.vdb.milvus_vector_db_service import FieldSchemaEncoder
 from morpheus_llm.service.vdb.milvus_vector_db_service import MilvusVectorDBService
 
-# Milvus data type mapping dictionary
-MILVUS_DATA_TYPE_MAP = {
-    "int8": DataType.INT8,
-    "int16": DataType.INT16,
-    "int32": DataType.INT32,
-    "int64": DataType.INT64,
-    "bool": DataType.BOOL,
-    "float": DataType.FLOAT,
-    "double": DataType.DOUBLE,
-    "binary_vector": DataType.BINARY_VECTOR,
-    "float_vector": DataType.FLOAT_VECTOR,
-    "string": DataType.STRING,
-    "varchar": DataType.VARCHAR,
-    "json": DataType.JSON,
-}
+# Milvus data type mapping dictionary, populated on import
+MILVUS_DATA_TYPE_MAP = {}
+
+try:
+    import pymilvus
+    from pymilvus import DataType
+    from pymilvus import MilvusException
+
+    MILVUS_DATA_TYPE_MAP.update({
+        "int8": DataType.INT8,
+        "int16": DataType.INT16,
+        "int32": DataType.INT32,
+        "int64": DataType.INT64,
+        "bool": DataType.BOOL,
+        "float": DataType.FLOAT,
+        "double": DataType.DOUBLE,
+        "binary_vector": DataType.BINARY_VECTOR,
+        "float_vector": DataType.FLOAT_VECTOR,
+        "string": DataType.STRING,
+        "varchar": DataType.VARCHAR,
+        "json": DataType.JSON,
+    })
+
+except ImportError:
+    pass
+
+
+@pytest.fixture(name="pymilvus", scope='session', autouse=True)
+def pymilvus_fixture(pymilvus: types.ModuleType):  # pylint: disable=redefined-outer-name
+    """
+    Fixture to ensure pymilvus is installed
+    """
+    yield pymilvus
 
 
 @pytest.mark.milvus

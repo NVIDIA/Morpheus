@@ -1,5 +1,5 @@
 <!--
-SPDX-FileCopyrightText: Copyright (c) 2023-2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+SPDX-FileCopyrightText: Copyright (c) 2023-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 SPDX-License-Identifier: Apache-2.0
 
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -49,7 +49,7 @@ To serve the embedding model, we will use Triton:
 cd ${MORPHEUS_ROOT}
 
 # Launch Triton
-docker run --rm -ti --gpus=all -p8000:8000 -p8001:8001 -p8002:8002 nvcr.io/nvidia/morpheus/morpheus-tritonserver-models:24.10 tritonserver --model-repository=/models/triton-model-repo --exit-on-error=false --model-control-mode=explicit --load-model all-MiniLM-L6-v2
+docker run --rm -ti --gpus=all -p8000:8000 -p8001:8001 -p8002:8002 nvcr.io/nvidia/morpheus/morpheus-tritonserver-models:25.02 tritonserver --model-repository=/models/triton-model-repo --exit-on-error=false --model-control-mode=explicit --load-model all-MiniLM-L6-v2
 ```
 
 ## Populate the Milvus database
@@ -98,7 +98,7 @@ export NGC_API_KEY="<YOUR_NGC_API>"
 
 Then install basic requirements:
 ```bash
-conda env update --solver=libmamba -n morpheus --file conda/environments/examples_cuda-125_arch-x86_64.yaml --prune
+conda env update --solver=libmamba -n morpheus --file conda/environments/examples_cuda-125_arch-$(arch).yaml --prune
 ```
 
 Run the RAG example to query the Milvus database:

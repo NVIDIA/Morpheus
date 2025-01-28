@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# SPDX-FileCopyrightText: Copyright (c) 2022-2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-FileCopyrightText: Copyright (c) 2022-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 # SPDX-License-Identifier: Apache-2.0
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -30,8 +30,6 @@ from morpheus.models.dfencoder.autoencoder import AutoEncoder
 from morpheus.models.dfencoder.dataloader import DFEncoderDataLoader
 from morpheus.models.dfencoder.dataloader import FileSystemDataset
 from morpheus.models.dfencoder.multiprocessing import start_processes
-
-# import torch
 
 FEATURE_COLUMNS = [
     "app_name",
@@ -109,6 +107,11 @@ def cleanup_dist():
 @pytest.mark.slow
 def test_dfencoder_distributed_e2e():
     world_size = 1
+
+    import torch
+
+    if not torch.cuda.is_available():
+        pytest.skip("Need CUDA enabled torch installation")
 
     start_processes(_run_test, args=(world_size, ), nprocs=world_size, join=True)
 

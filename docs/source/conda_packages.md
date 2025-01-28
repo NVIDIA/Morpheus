@@ -1,5 +1,5 @@
 <!--
-SPDX-FileCopyrightText: Copyright (c) 2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+SPDX-FileCopyrightText: Copyright (c) 2024-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 SPDX-License-Identifier: Apache-2.0
 
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -56,7 +56,7 @@ The `morpheus-core` Conda package installs the `morpheus` Python package. It als
 Some of the stages in the core library require additional dependencies that are hosted on PyPI. These dependencies are included as a requirements file in the `morpheus` Python package. The requirements files can be located and installed by running the following command:
 ```bash
 MORPHEUS_CORE_PKG_DIR=$(dirname $(python -c "import morpheus; print(morpheus.__file__)"))
-pip install -r ${MORPHEUS_CORE_PKG_DIR}/requirements_morpheus_core.txt
+pip install -r ${MORPHEUS_CORE_PKG_DIR}/requirements_morpheus_core_arch-$(arch).txt
 ```
 
 ## Morpheus DFP
@@ -87,7 +87,7 @@ The `morpheus-dfp` Conda package installs the `morpheus_dfp` Python package. It 
 Some of the DFP stages in the library require additional dependencies that are hosted on PyPI. These dependencies are included as a requirements file in the `morpheus_dfp` Python package. It can be installed by running the following command:
 ```bash
 MORPHEUS_DFP_PKG_DIR=$(dirname $(python -c "import morpheus_dfp; print(morpheus_dfp.__file__)"))
-pip install -r ${MORPHEUS_DFP_PKG_DIR}/requirements_morpheus_dfp.txt
+pip install -r ${MORPHEUS_DFP_PKG_DIR}/requirements_morpheus_dfp_arch-$(arch).txt
 ```
 
 ## Morpheus LLM
@@ -120,7 +120,7 @@ The `morpheus-llm` Conda package installs the `morpheus_llm` python package. It 
 Some of the stages in the library require additional dependencies that are hosted on PyPI. These dependencies are included as a requirements file in the `morpheus_llm` Python package. It can be installed by running the following command:
 ```bash
 MORPHEUS_LLM_PKG_DIR=$(dirname $(python -c "import morpheus_llm; print(morpheus_llm.__file__)"))
-pip install -r ${MORPHEUS_LLM_PKG_DIR}/requirements_morpheus_llm.txt
+pip install -r ${MORPHEUS_LLM_PKG_DIR}/requirements_morpheus_llm_arch-$(arch).txt
 ```
 
 ## Miscellaneous

@@ -15,6 +15,8 @@ __all__ = [
     "FilterSource",
     "HttpEndpoint",
     "HttpServer",
+    "IndicatorsFontStyle",
+    "IndicatorsTextColor",
     "Tensor",
     "TypeId",
     "determine_file_type",
@@ -120,6 +122,107 @@ class HttpServer():
     def start(self) -> None: ...
     def stop(self) -> None: ...
     pass
+class IndicatorsFontStyle():
+    """
+    Members:
+
+      bold
+
+      dark
+
+      italic
+
+      underline
+
+      blink
+
+      reverse
+
+      concealed
+
+      crossed
+    """
+    def __eq__(self, other: object) -> bool: ...
+    def __getstate__(self) -> int: ...
+    def __hash__(self) -> int: ...
+    def __index__(self) -> int: ...
+    def __init__(self, value: int) -> None: ...
+    def __int__(self) -> int: ...
+    def __ne__(self, other: object) -> bool: ...
+    def __repr__(self) -> str: ...
+    def __setstate__(self, state: int) -> None: ...
+    @property
+    def name(self) -> str:
+        """
+        :type: str
+        """
+    @property
+    def value(self) -> int:
+        """
+        :type: int
+        """
+    __members__: dict # value = {'bold': <IndicatorsFontStyle.bold: 0>, 'dark': <IndicatorsFontStyle.dark: 1>, 'italic': <IndicatorsFontStyle.italic: 2>, 'underline': <IndicatorsFontStyle.underline: 3>, 'blink': <IndicatorsFontStyle.blink: 4>, 'reverse': <IndicatorsFontStyle.reverse: 5>, 'concealed': <IndicatorsFontStyle.concealed: 6>, 'crossed': <IndicatorsFontStyle.crossed: 7>}
+    blink: morpheus._lib.common.IndicatorsFontStyle # value = <IndicatorsFontStyle.blink: 4>
+    bold: morpheus._lib.common.IndicatorsFontStyle # value = <IndicatorsFontStyle.bold: 0>
+    concealed: morpheus._lib.common.IndicatorsFontStyle # value = <IndicatorsFontStyle.concealed: 6>
+    crossed: morpheus._lib.common.IndicatorsFontStyle # value = <IndicatorsFontStyle.crossed: 7>
+    dark: morpheus._lib.common.IndicatorsFontStyle # value = <IndicatorsFontStyle.dark: 1>
+    italic: morpheus._lib.common.IndicatorsFontStyle # value = <IndicatorsFontStyle.italic: 2>
+    reverse: morpheus._lib.common.IndicatorsFontStyle # value = <IndicatorsFontStyle.reverse: 5>
+    underline: morpheus._lib.common.IndicatorsFontStyle # value = <IndicatorsFontStyle.underline: 3>
+    pass
+class IndicatorsTextColor():
+    """
+    Members:
+
+      grey
+
+      red
+
+      green
+
+      yellow
+
+      blue
+
+      magenta
+
+      cyan
+
+      white
+
+      unspecified
+    """
+    def __eq__(self, other: object) -> bool: ...
+    def __getstate__(self) -> int: ...
+    def __hash__(self) -> int: ...
+    def __index__(self) -> int: ...
+    def __init__(self, value: int) -> None: ...
+    def __int__(self) -> int: ...
+    def __ne__(self, other: object) -> bool: ...
+    def __repr__(self) -> str: ...
+    def __setstate__(self, state: int) -> None: ...
+    @property
+    def name(self) -> str:
+        """
+        :type: str
+        """
+    @property
+    def value(self) -> int:
+        """
+        :type: int
+        """
+    __members__: dict # value = {'grey': <IndicatorsTextColor.grey: 0>, 'red': <IndicatorsTextColor.red: 1>, 'green': <IndicatorsTextColor.green: 2>, 'yellow': <IndicatorsTextColor.yellow: 3>, 'blue': <IndicatorsTextColor.blue: 4>, 'magenta': <IndicatorsTextColor.magenta: 5>, 'cyan': <IndicatorsTextColor.cyan: 6>, 'white': <IndicatorsTextColor.white: 7>, 'unspecified': <IndicatorsTextColor.unspecified: 8>}
+    blue: morpheus._lib.common.IndicatorsTextColor # value = <IndicatorsTextColor.blue: 4>
+    cyan: morpheus._lib.common.IndicatorsTextColor # value = <IndicatorsTextColor.cyan: 6>
+    green: morpheus._lib.common.IndicatorsTextColor # value = <IndicatorsTextColor.green: 2>
+    grey: morpheus._lib.common.IndicatorsTextColor # value = <IndicatorsTextColor.grey: 0>
+    magenta: morpheus._lib.common.IndicatorsTextColor # value = <IndicatorsTextColor.magenta: 5>
+    red: morpheus._lib.common.IndicatorsTextColor # value = <IndicatorsTextColor.red: 1>
+    unspecified: morpheus._lib.common.IndicatorsTextColor # value = <IndicatorsTextColor.unspecified: 8>
+    white: morpheus._lib.common.IndicatorsTextColor # value = <IndicatorsTextColor.white: 7>
+    yellow: morpheus._lib.common.IndicatorsTextColor # value = <IndicatorsTextColor.yellow: 3>
+    pass
 class Tensor():
     @staticmethod
     def from_cupy(arg0: object) -> Tensor: ...
@@ -210,4 +313,4 @@ def typeid_to_numpy_str(arg0: TypeId) -> str:
     pass
 def write_df_to_file(df: object, filename: str, file_type: FileTypes = FileTypes.Auto, **kwargs) -> None:
     pass
-__version__ = '24.10.0'
+__version__ = '25.2.0'

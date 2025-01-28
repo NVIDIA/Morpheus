@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: Copyright (c) 2023-2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-FileCopyrightText: Copyright (c) 2023-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 # SPDX-License-Identifier: Apache-2.0
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -138,7 +138,7 @@ def test_log_parsing_triton_inference_log_parsing_build_output_message(config: C
     msg = worker.build_output_message(input_msg)
     assert msg.payload() is input_msg.payload()
     assert msg.payload().count == mess_count
-    assert msg.tensors().count == count
+    assert msg.tensor_count() == count
 
     assert set(msg.tensors().tensor_names).issuperset(('confidences', 'labels', 'input_ids', 'seq_ids'))
     assert msg.tensors().get_tensor('confidences').shape == (count, 2)
@@ -187,7 +187,7 @@ def test_log_parsing_inference_stage_convert_one_response(import_mod: typing.Lis
     assert isinstance(output_msg, ControlMessage)
     assert output_msg.payload() is input_inf.payload()
     assert output_msg.payload().count == mess_count
-    assert output_msg.tensors().count == count
+    assert output_msg.tensor_count() == count
 
     assert (output_msg.tensors().get_tensor('seq_ids') == input_inf.tensors().get_tensor('seq_ids')).all()
     assert (output_msg.tensors().get_tensor('input_ids') == input_inf.tensors().get_tensor('input_ids')).all()

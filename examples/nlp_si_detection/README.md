@@ -1,5 +1,5 @@
 <!--
-SPDX-FileCopyrightText: Copyright (c) 2021-2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+SPDX-FileCopyrightText: Copyright (c) 2021-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 SPDX-License-Identifier: Apache-2.0
 
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -85,7 +85,7 @@ This example utilizes the Triton Inference Server to perform inference. The neur
 From the Morpheus repo root directory, run the following to launch Triton and load the `sid-minibert` model:
 
 ```bash
-docker run --rm -ti --gpus=all -p8000:8000 -p8001:8001 -p8002:8002 nvcr.io/nvidia/morpheus/morpheus-tritonserver-models:24.10 tritonserver --model-repository=/models/triton-model-repo --exit-on-error=false --model-control-mode=explicit --load-model sid-minibert-onnx
+docker run --rm -ti --gpus=all -p8000:8000 -p8001:8001 -p8002:8002 nvcr.io/nvidia/morpheus/morpheus-tritonserver-models:25.02 tritonserver --model-repository=/models/triton-model-repo --exit-on-error=false --model-control-mode=explicit --load-model sid-minibert-onnx
 ```
 
 This will launch Triton and only load the `sid-minibert-onnx` model. This model has been configured with a max batch size of 32, and to use dynamic batching for increased performance.
@@ -131,8 +131,8 @@ morpheus --log_level=DEBUG \
    filter --filter_source=TENSOR \
    `# 8th Stage: Convert from objects back into strings` \
    serialize --exclude '^_ts_' \
-   `# 9th Stage: Write out the JSON lines to the detections.jsonlines file` \
-   to-file --filename=detections.jsonlines --overwrite
+   `# 9th Stage: Write out the JSON lines to the nlp_si_detections.jsonlines file` \
+   to-file --filename=.tmp/output/nlp_si_detections.jsonlines --overwrite
 ```
 
 If successful, the following should be displayed:
@@ -187,7 +187,7 @@ Added stage: <add-class-5; AddClassificationsStage(threshold=0.5, labels=[], pre
   └─ morpheus.ControlMessage -> morpheus.ControlMessage
 Added stage: <serialize-6; SerializeStage(include=[], exclude=['^_ts_'], fixed_columns=True)>
   └─ morpheus.ControlMessage -> morpheus.MessageMeta
-Added stage: <to-file-7; WriteToFileStage(filename=detections.jsonlines, overwrite=True, file_type=FileTypes.Auto)>
+Added stage: <to-file-7; WriteToFileStage(filename=.tmp/output/nlp_si_detections.jsonlines, overwrite=True, file_type=FileTypes.Auto)>
   └─ morpheus.MessageMeta -> morpheus.MessageMeta
 ====Building Pipeline Complete!====
 Starting! Time: 1656352480.541071
@@ -196,7 +196,7 @@ Inference Rate[Complete]: 93085inf [00:07, 12673.63inf/s]
 
 ```
 
-The output file `detections.jsonlines` will contain the original PCAP messages with the following additional fields added:
+The output file `.tmp/output/nlp_si_detections.jsonlines` will contain the original PCAP messages with the following additional fields added:
 * `address`
 * `bank_acct`
 * `credit_card`

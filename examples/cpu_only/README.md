@@ -1,5 +1,5 @@
 <!--
-SPDX-FileCopyrightText: Copyright (c) 2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+SPDX-FileCopyrightText: Copyright (c) 2024-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 SPDX-License-Identifier: Apache-2.0
 
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -53,7 +53,7 @@ Options:
 To launch the configured Morpheus pipeline with the sample data that is provided in `examples/data`, run the following:
 
 ```bash
-python examples/cpu_only/run.py --use_cpu_only --in_file=examples/data/email.jsonlines --out_file=.tmp/out.jsonlines
+python examples/cpu_only/run.py --use_cpu_only --in_file=examples/data/email.jsonlines --out_file=.tmp/output/cpu_only_out.jsonlines
 ```
 
 ### CLI Example
@@ -68,5 +68,5 @@ morpheus --log_level INFO \
     deserialize \
     monitor --description "deserialize" \
     serialize \
-    to-file --filename=.tmp/out.jsonlines --overwrite
+    to-file --filename=.tmp/output/cpu_only_cli_out.jsonlines --overwrite
 ```

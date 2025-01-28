@@ -1,5 +1,5 @@
 #!/usr/bin/bash
-# SPDX-FileCopyrightText: Copyright (c) 2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-FileCopyrightText: Copyright (c) 2024-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 # SPDX-License-Identifier: Apache-2.0
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -44,8 +44,11 @@ rapids-logger "Listing LFS-known files"
 git lfs ls-files
 rapids-logger "Building Morpheus Libraries"
 
-# Run nvidia-smi to check the test env
-/usr/bin/nvidia-smi
+# If we have access to a GPU run nvidia-smi to check the test env
+if [ -f /usr/bin/nvidia-smi ]; then
+   /usr/bin/nvidia-smi
+fi
+
 
 # Run the conda build, and upload to conda forge if requested
 export MORPHEUS_PYTHON_BUILD_STUBS=OFF
@@ -57,9 +60,9 @@ if [[ " ${CI_SCRIPT_ARGS} " =~ " upload " ]]; then
    rapids-logger "Building Morpheus Libraries... Done"
 else
    # if we didn't receive the upload argument, we can still upload the artifact to S3
-   tar cfj "${WORKSPACE_TMP}/conda_libs.tar.bz" "${RAPIDS_CONDA_BLD_OUTPUT_DIR}"
+   tar cfj "${WORKSPACE_TMP}/conda_libs-${REAL_ARCH}.tar.bz" "${RAPIDS_CONDA_BLD_OUTPUT_DIR}"
    ls -lh ${WORKSPACE_TMP}/
 
    rapids-logger "Pushing results to ${DISPLAY_ARTIFACT_URL}/"
-   upload_artifact "${WORKSPACE_TMP}/conda_libs.tar.bz"
+   upload_artifact "${WORKSPACE_TMP}/conda_libs-${REAL_ARCH}.tar.bz"
 fi

@@ -1,4 +1,4 @@
-# Copyright (c) 2024, NVIDIA CORPORATION.
+# Copyright (c) 2024-2025, NVIDIA CORPORATION.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -15,12 +15,10 @@
 import logging
 import typing
 
-import pymilvus
 import yaml
 
 from morpheus.config import Config
 from morpheus.config import PipelineModes
-from morpheus_llm.service.vdb.milvus_client import DATA_TYPE_MAP
 
 logger = logging.getLogger(__name__)
 
@@ -147,6 +145,10 @@ YAML_TO_CONFIG_MAPPING = {
 
 
 def build_milvus_config(resource_schema_config: dict):
+    import pymilvus
+
+    from morpheus_llm.service.vdb.milvus_client import DATA_TYPE_MAP
+
     schema_fields = []
     for field_data in resource_schema_config["schema_conf"]["schema_fields"]:
         field_data["dtype"] = DATA_TYPE_MAP.get(field_data["dtype"])

@@ -1,5 +1,5 @@
 <!--
-# Copyright (c) 2021-2024, NVIDIA CORPORATION.
+# Copyright (c) 2021-2025, NVIDIA CORPORATION.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -18,6 +18,13 @@
 
 We show here how to set up and run the Production DFP pipeline on Azure and Duo log data to generate input files for the DFP visualization UI. You can find more information about the Production DFP pipeline in this [README](../production/README.md) and the [DFP Developer Guide](../../../docs/source/developer_guide/guides/5_digital_fingerprinting.md).
 
+## Supported Architectures
+| Architecture | Supported | Issue |
+|--------------|-----------|-------|
+| x86_64 | ✔ | |
+| aarch64 | ✘ | [#2125](https://github.com/nv-morpheus/Morpheus/issues/2125) |
+
+
 ## Prerequisites
 
 To run the demo you will need the following:
@@ -30,17 +37,10 @@ To run the demo you will need the following:
 git submodule update --init --recursive
 ```
 
-## Build the Morpheus container
-This is necessary to get the latest changes needed for DFP. From the root of the Morpheus repo:
-```bash
-./docker/build_container_release.sh
-```
-
 ## Building Services via `docker compose`
 
 ```bash
 cd examples/digital_fingerprinting/production
-export MORPHEUS_CONTAINER_VERSION="$(git describe --tags --abbrev=0)-runtime"
 docker compose build
 ```
 

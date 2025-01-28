@@ -1,5 +1,5 @@
 <!--
-SPDX-FileCopyrightText: Copyright (c) 2022-2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+SPDX-FileCopyrightText: Copyright (c) 2022-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 SPDX-License-Identifier: Apache-2.0
 
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -41,19 +41,19 @@ More advanced users, or those who are interested in using the latest pre-release
 ## Using Pre-Built Docker Containers
 ### Pull the Morpheus Image
 1. Go to [https://catalog.ngc.nvidia.com/orgs/nvidia/teams/morpheus/containers/morpheus/tags](https://catalog.ngc.nvidia.com/orgs/nvidia/teams/morpheus/containers/morpheus/tags)
-1. Choose a version.
-1. Download the selected version, for example for `24.10`:
+1. Choose a version
+1. Download the selected version, for example for `25.02`:
     ```bash
-    docker pull nvcr.io/nvidia/morpheus/morpheus:24.10-runtime
+    docker pull nvcr.io/nvidia/morpheus/morpheus:25.02-runtime
     ```
 1. Optional: Many of the examples require NVIDIA Triton Inference Server to be running with the included models. To download the Morpheus Triton Server Models container, ensure that the version number matches that of the Morpheus container you downloaded in the previous step, then run:
     ```bash
-    docker pull nvcr.io/nvidia/morpheus/morpheus-tritonserver-models:24.10
+    docker pull nvcr.io/nvidia/morpheus/morpheus-tritonserver-models:25.02
     ```
 
 > **Note about Morpheus versions:**
 >
-> Morpheus uses Calendar Versioning ([CalVer](https://calver.org/)). For each Morpheus release there will be an image tagged in the form of `YY.MM-runtime`. This tag will always refer to the latest point release for that version. In addition, there will also be at least one point release version tagged in the form of `vYY.MM.00-runtime`. This will be the initial point release for that version (ex., `v24.10.00-runtime`). In the event of a major bug, we may release additional point releases (ex., `v24.10.01-runtime`, `v24.10.02-runtime` etc...), and the `YY.MM-runtime` tag will be updated to reference that point release.
+> Morpheus uses Calendar Versioning ([CalVer](https://calver.org/)). For each Morpheus release there will be an image tagged in the form of `YY.MM-runtime` this tag will always refer to the latest point release for that version. In addition to this there will also be at least one point release version tagged in the form of `vYY.MM.00-runtime` this will be the initial point release for that version (ex. `v25.02.00-runtime`). In the event of a major bug, we may release additional point releases (ex. `v25.02.01-runtime`, `v25.02.02-runtime` etc...), and the `YY.MM-runtime` tag will be updated to reference that point release.
 >
 > Users who want to ensure they are running with the latest bug fixes should use a release image tag (`YY.MM-runtime`). Users who need to deploy a specific version into production should use a point release image tag (`vYY.MM.00-runtime`).
 
@@ -61,7 +61,7 @@ More advanced users, or those who are interested in using the latest pre-release
 1. Ensure that [The NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html#installation) is installed.
 1. Start the container downloaded from the previous section:
 ```bash
-docker run --rm -ti --runtime=nvidia --gpus=all --net=host -v /var/run/docker.sock:/var/run/docker.sock nvcr.io/nvidia/morpheus/morpheus:24.10-runtime bash
+docker run --rm -ti --runtime=nvidia --gpus=all --net=host -v /var/run/docker.sock:/var/run/docker.sock nvcr.io/nvidia/morpheus/morpheus:25.02-runtime bash
 ```
 
 Note about some of the flags above:
@@ -147,17 +147,17 @@ To run the built "release" container, use the following:
 ./docker/run_container_release.sh
 ```
 
-The `./docker/run_container_release.sh` script accepts the same `DOCKER_IMAGE_NAME` and `DOCKER_IMAGE_TAG` environment variables that the `./docker/build_container_release.sh` script does. For example, to run version `v24.10.00` use the following:
+The `./docker/run_container_release.sh` script accepts the same `DOCKER_IMAGE_NAME`, and `DOCKER_IMAGE_TAG` environment variables that the `./docker/build_container_release.sh` script does. For example, to run version `v25.02.00` use the following:
 
 ```bash
-DOCKER_IMAGE_TAG="v24.10.00-runtime" ./docker/run_container_release.sh
+DOCKER_IMAGE_TAG="v25.02.00-runtime" ./docker/run_container_release.sh
 ```
 
 ## Acquiring the Morpheus Models Container
 
 Many of the validation tests and example workflows require a Triton server to function. For simplicity, Morpheus provides a pre-built models container, which contains both the Triton and Morpheus models. Users implementing a release version of Morpheus can download the corresponding Triton models container from NGC with the following command:
 ```bash
-docker pull nvcr.io/nvidia/morpheus/morpheus-tritonserver-models:24.10
+docker pull nvcr.io/nvidia/morpheus/morpheus-tritonserver-models:25.02
 ```
 
 Users working with an unreleased development version of Morpheus can build the Triton models container from the Morpheus repository. To build the Triton models container, run the following command from the root of the Morpheus repository:
@@ -170,7 +170,7 @@ models/docker/build_container.sh
 In a new terminal, use the following command to launch a Docker container for Triton loading all of the included pre-trained models:
 ```bash
 docker run --rm -ti --gpus=all -p8000:8000 -p8001:8001 -p8002:8002 \
-  nvcr.io/nvidia/morpheus/morpheus-tritonserver-models:24.10 \
+  nvcr.io/nvidia/morpheus/morpheus-tritonserver-models:25.02 \
   tritonserver --model-repository=/models/triton-model-repo \
     --exit-on-error=false \
     --log-info=true \
@@ -183,7 +183,7 @@ This will launch Triton using the default network ports (8000 for HTTP, 8001 for
 Note: The above command is useful for testing out Morpheus, however it does load several models into GPU memory, which at the time of this writing consumes roughly 2GB of GPU memory. Production users should consider only loading the specific models they plan on using with the `--model-control-mode=explicit` and `--load-model` flags. For example, to launch Triton only loading the `abp-nvsmi-xgb` model:
 ```bash
 docker run --rm -ti --gpus=all -p8000:8000 -p8001:8001 -p8002:8002 \
-  nvcr.io/nvidia/morpheus/morpheus-tritonserver-models:24.10  \
+  nvcr.io/nvidia/morpheus/morpheus-tritonserver-models:25.02  \
   tritonserver --model-repository=/models/triton-model-repo \
     --exit-on-error=false \
     --log-info=true \

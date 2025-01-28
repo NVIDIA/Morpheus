@@ -1,5 +1,5 @@
 <!--
-SPDX-FileCopyrightText: Copyright (c) 2022-2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+SPDX-FileCopyrightText: Copyright (c) 2022-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 SPDX-License-Identifier: Apache-2.0
 
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -235,7 +235,7 @@ We will launch a Triton Docker container with:
 
 ```shell
 docker run --rm -ti --gpus=all -p8000:8000 -p8001:8001 -p8002:8002 \
-  nvcr.io/nvidia/morpheus/morpheus-tritonserver-models:24.10 \
+  nvcr.io/nvidia/morpheus/morpheus-tritonserver-models:25.02 \
   tritonserver --model-repository=/models/triton-model-repo \
     --exit-on-error=false \
     --log-info=true \
@@ -413,7 +413,7 @@ else:
     pipeline.add_stage(RecipientFeaturesStage(config))
 ```
 
-To tokenize the input data we will use Morpheus' `PreprocessNLPStage`. This stage uses the [cuDF subword tokenizer](https://docs.rapids.ai/api/cudf/stable/user_guide/api_docs/subword_tokenize/#subwordtokenizer) to transform strings into a tensor of numbers to be fed into the neural network model. Rather than split the string by characters or whitespaces, we split them into meaningful subwords based upon the occurrence of the subwords in a large training corpus. You can find more details here: [https://arxiv.org/abs/1810.04805v2](https://arxiv.org/abs/1810.04805v2). All we need to know for now is that the text will be converted to subword token ids based on the vocabulary file that we provide (`vocab_hash_file=vocab file`).
+To tokenize the input data we will use Morpheus' `PreprocessNLPStage`. This stage uses the [cuDF subword tokenizer](https://docs.rapids.ai/api/cudf/legacy/user_guide/api_docs/subword_tokenize/#subwordtokenizer) to transform strings into a tensor of numbers to be fed into the neural network model. Rather than split the string by characters or whitespaces, we split them into meaningful subwords based upon the occurrence of the subwords in a large training corpus. You can find more details here: [https://arxiv.org/abs/1810.04805v2](https://arxiv.org/abs/1810.04805v2). All we need to know for now is that the text will be converted to subword token ids based on the vocabulary file that we provide (`vocab_hash_file=vocab file`).
 
 Let's go ahead and instantiate our `PreprocessNLPStage` and add it to the pipeline:
 
@@ -482,7 +482,6 @@ To explicitly set the output format we could specify the `file_type` argument to
 ```python
 import logging
 import os
-import tempfile
 
 import click
 
@@ -542,7 +541,7 @@ MORPHEUS_ROOT = os.environ['MORPHEUS_ROOT']
 @click.option("--server_url", default='localhost:8000', help="Tritonserver url.")
 @click.option(
     "--output_file",
-    default=os.path.join(tempfile.gettempdir(), "detections.jsonlines"),
+    default=".tmp/output/phishing_detections.jsonlines",
     help="The path to the file where the inference output will be saved.",
 )
 def run_pipeline(use_stage_function: bool,
@@ -633,7 +632,7 @@ morpheus --log_level=debug --plugin examples/developer_guide/2_1_real_world_phis
   monitor --description="Inference Rate" --smoothing=0.001 --unit=inf \
   add-scores --label=is_phishing \
   serialize \
-  to-file --filename=/tmp/detections.jsonlines --overwrite
+  to-file --filename=.tmp/output/phishing_detections_cli.jsonlines --overwrite
 ```
 
 ## Stage Constructors

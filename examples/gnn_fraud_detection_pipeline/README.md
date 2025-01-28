@@ -1,5 +1,5 @@
 <!--
-SPDX-FileCopyrightText: Copyright (c) 2021-2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+SPDX-FileCopyrightText: Copyright (c) 2021-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 SPDX-License-Identifier: Apache-2.0
 
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -17,13 +17,19 @@ limitations under the License.
 # GNN Fraud Detection Pipeline
 
 ## Supported Environments
-All environments require additional Conda packages which can be installed with either the `conda/environments/all_cuda-125_arch-x86_64.yaml` or `conda/environments/examples_cuda-125_arch-x86_64.yaml` environment files. Refer to the [Requirements](#requirements) section for more information.
+All environments require additional Conda packages which can be installed with either the `conda/environments/all_cuda-125_arch-$(arch).yaml` or `conda/environments/examples_cuda-125_arch-$(arch).yaml` environment files. Refer to the [Requirements](#requirements) section for more information.
 | Environment | Supported | Notes |
 |-------------|-----------|-------|
 | Conda | ✔ | |
 | Morpheus Docker Container | ✔ |  |
 | Morpheus Release Container | ✔ |  |
 | Dev Container | ✔ |  |
+
+### Supported Architectures
+| Architecture | Supported | Issue |
+|--------------|-----------|-------|
+| x86_64 | ✔ | |
+| aarch64 | ✘ | [#2123](https://github.com/nv-morpheus/Morpheus/issues/2123) |
 
 ## Requirements
 
@@ -32,7 +38,7 @@ Prior to running the GNN fraud detection pipeline, additional requirements must 
 ```bash
 conda env update --solver=libmamba \
   -n ${CONDA_DEFAULT_ENV} \
-  --file ./conda/environments/examples_cuda-125_arch-x86_64.yaml
+  --file ./conda/environments/examples_cuda-125_arch-$(arch).yaml
 ```
 
 ## Running
@@ -97,7 +103,7 @@ Added stage: <serialize-8; SerializeStage(include=None, exclude=None, fixed_colu
   └─ morpheus.ControlMessage -> morpheus.MessageMeta
 Added stage: <monitor-9; MonitorStage(description=Serialize rate, smoothing=0.05, unit=messages, delayed_start=False, determine_count_fn=None, log_level=LogLevels.INFO)>
   └─ morpheus.MessageMeta -> morpheus.MessageMeta
-Added stage: <to-file-10; WriteToFileStage(filename=output.csv, overwrite=True, file_type=FileTypes.Auto, include_index_col=True, flush=False)>
+Added stage: <to-file-10; WriteToFileStage(filename=.tmp/output/gnn_fraud_detection_output.csv, overwrite=True, file_type=FileTypes.Auto, include_index_col=True, flush=False)>
   └─ morpheus.MessageMeta -> morpheus.MessageMeta
 ====Building Segment Complete!====
 Graph construction rate[Complete]: 265 messages [00:00, 1016.18 messages/s]
@@ -128,5 +134,5 @@ morpheus --log_level INFO \
 	gnn-fraud-classification --model_xgb_file examples/gnn_fraud_detection_pipeline/model/xgb.pt \
 	monitor --description "Add classification rate" \
 	serialize \
-	to-file --filename "output.csv" --overwrite
+	to-file --filename "gnn_fraud_detection_cli_output.csv" --overwrite
 ```

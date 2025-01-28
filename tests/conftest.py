@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: Copyright (c) 2022-2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-FileCopyrightText: Copyright (c) 2022-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 # SPDX-License-Identifier: Apache-2.0
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -53,7 +53,7 @@ if PYTEST_KAFKA_AVAIL:
 
 OPT_DEP_SKIP_REASON = (
     "This test requires the {package} package to be installed, to install this run:\n"
-    "`conda env update --solver=libmamba -n morpheus --file conda/environments/examples_cuda-125_arch-x86_64.yaml`")
+    "`conda env update --solver=libmamba -n morpheus --file conda/environments/examples_cuda-125_arch-$(arch).yaml`")
 
 
 def pytest_addoption(parser: pytest.Parser):
@@ -956,7 +956,7 @@ def _get_random_port():
 
 
 @pytest.fixture(scope="session")
-def milvus_server_uri(tmp_path_factory):
+def milvus_server_uri(tmp_path_factory, pymilvus: types.ModuleType):
     """
     Pytest fixture to start and stop a Milvus server and provide its URI for testing.
     Due to the high startup time for Milvus users can optionally start a Milvus server before running tests and
@@ -1125,6 +1125,16 @@ def langchain_community_fixture(fail_missing: bool):
                          fail_missing=fail_missing)
 
 
+@pytest.fixture(name="langchain_openai", scope='session')
+def langchain_openai_fixture(fail_missing: bool):
+    """
+    Fixture to ensure langchain_openai is installed
+    """
+    yield import_or_skip("langchain_openai",
+                         reason=OPT_DEP_SKIP_REASON.format(package="langchain_openai"),
+                         fail_missing=fail_missing)
+
+
 @pytest.fixture(name="langchain_nvidia_ai_endpoints", scope='session')
 def langchain_nvidia_ai_endpoints_fixture(fail_missing: bool):
     """
@@ -1143,6 +1153,30 @@ def databricks_fixture(fail_missing: bool):
     yield import_or_skip("databricks.connect",
                          reason=OPT_DEP_SKIP_REASON.format(package="databricks-connect"),
                          fail_missing=fail_missing)
+
+
+@pytest.fixture(name="numexpr", scope='session')
+def numexpr_fixture(fail_missing: bool):
+    """
+    Fixture to ensure numexpr is installed
+    """
+    yield import_or_skip("numexpr", reason=OPT_DEP_SKIP_REASON.format(package="numexpr"), fail_missing=fail_missing)
+
+
+@pytest.fixture(name="pymilvus", scope='session')
+def pymilvus_fixture(fail_missing: bool):
+    """
+    Fixture to ensure milvus is installed
+    """
+    yield import_or_skip("pymilvus", reason=OPT_DEP_SKIP_REASON.format(package="pymilvus"), fail_missing=fail_missing)
+
+
+@pytest.fixture(name="pypdfium2", scope='session')
+def pypdfium2_fixture(fail_missing: bool):
+    """
+    Fixture to ensure pypdfium2 is installed
+    """
+    yield import_or_skip("pypdfium2", reason=OPT_DEP_SKIP_REASON.format(package="pypdfium2"), fail_missing=fail_missing)
 
 
 @pytest.mark.usefixtures("openai")

@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# SPDX-FileCopyrightText: Copyright (c) 2023-2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-FileCopyrightText: Copyright (c) 2023-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 # SPDX-License-Identifier: Apache-2.0
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,15 +14,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import logging
-
 import pytest
 
 from _utils.stages.error_raiser import ErrorRaiserStage
-from _utils.stages.in_memory_source_x_stage import InMemSourceXStage
 from morpheus.config import Config
 from morpheus.pipeline import LinearPipeline
-from morpheus.stages.general.monitor_stage import MonitorStage
 from morpheus.stages.input.in_memory_source_stage import InMemorySourceStage
 from morpheus.stages.output.in_memory_sink_stage import InMemorySinkStage
 from morpheus.utils.type_aliases import DataFrameType
@@ -41,24 +37,4 @@ def test_stage_raises_exception(config: Config, filter_probs_df: DataFrameType, 
 
     # Ensure that the raised exception was from our stage and not from something else
     assert error_raiser_stage.error_raised
-    assert len(sink_stage.get_messages()) == 0
-
-
-@pytest.mark.gpu_and_cpu_mode
-@pytest.mark.parametrize("delayed_start", [False, True])
-def test_monitor_not_impl(config: Config, delayed_start: bool):
-
-    class UnsupportedType:
-        pass
-
-    pipe = LinearPipeline(config)
-    pipe.set_source(InMemSourceXStage(config, [UnsupportedType()]))
-    monitor_stage = pipe.add_stage(MonitorStage(config, log_level=logging.WARNING, delayed_start=delayed_start))
-    sink_stage = pipe.add_stage(InMemorySinkStage(config))
-
-    assert monitor_stage._mc.is_enabled()
-
-    with pytest.raises(NotImplementedError):
-        pipe.run()
-
     assert len(sink_stage.get_messages()) == 0

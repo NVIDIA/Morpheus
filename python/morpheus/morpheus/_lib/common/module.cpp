@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: Copyright (c) 2021-2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * SPDX-FileCopyrightText: Copyright (c) 2021-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -37,6 +37,8 @@
 #include <pybind11/pybind11.h>
 #include <pybind11/pytypes.h>  // for return_value_policy::reference
 // for pathlib.Path -> std::filesystem::path conversions
+#include <indicators/color.hpp>
+#include <indicators/font_style.hpp>
 #include <pybind11/stl.h>             // IWYU pragma: keep
 #include <pybind11/stl/filesystem.h>  // IWYU pragma: keep
 
@@ -168,6 +170,27 @@ PYBIND11_MODULE(common, _module)
         .def("is_running", &HttpServerInterfaceProxy::is_running)
         .def("__enter__", &HttpServerInterfaceProxy::enter, py::return_value_policy::reference)
         .def("__exit__", &HttpServerInterfaceProxy::exit);
+
+    py::enum_<indicators::Color>(_module, "IndicatorsTextColor")
+        .value("grey", indicators::Color::grey)
+        .value("red", indicators::Color::red)
+        .value("green", indicators::Color::green)
+        .value("yellow", indicators::Color::yellow)
+        .value("blue", indicators::Color::blue)
+        .value("magenta", indicators::Color::magenta)
+        .value("cyan", indicators::Color::cyan)
+        .value("white", indicators::Color::white)
+        .value("unspecified", indicators::Color::unspecified);
+
+    py::enum_<indicators::FontStyle>(_module, "IndicatorsFontStyle")
+        .value("bold", indicators::FontStyle::bold)
+        .value("dark", indicators::FontStyle::dark)
+        .value("italic", indicators::FontStyle::italic)
+        .value("underline", indicators::FontStyle::underline)
+        .value("blink", indicators::FontStyle::blink)
+        .value("reverse", indicators::FontStyle::reverse)
+        .value("concealed", indicators::FontStyle::concealed)
+        .value("crossed", indicators::FontStyle::crossed);
 
     _module.attr("__version__") =
         MRC_CONCAT_STR(morpheus_VERSION_MAJOR << "." << morpheus_VERSION_MINOR << "." << morpheus_VERSION_PATCH);

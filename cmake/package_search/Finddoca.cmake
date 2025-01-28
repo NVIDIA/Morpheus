@@ -1,5 +1,5 @@
 # =============================================================================
-# Copyright (c) 2023-2024, NVIDIA CORPORATION.
+# Copyright (c) 2023-2025, NVIDIA CORPORATION.
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
 # in compliance with the License. You may obtain a copy of the License at
@@ -41,11 +41,6 @@ block(SCOPE_FOR VARIABLES
   # This library will always be installed on the host. Allow that to be searched here (Should fix this up in the future)
   set("CMAKE_FIND_ROOT_PATH_MODE_INCLUDE" BOTH)
   set("CMAKE_FIND_ROOT_PATH_MODE_LIBRARY" BOTH)
-
-  # CMAKE_LIBRARY_ARCHITECTURE needs to be set for this to work correctly. Will be restored at the end of the block
-  if(NOT DEFINED CMAKE_LIBRARY_ARCHITECTURE)
-    set(CMAKE_LIBRARY_ARCHITECTURE x86_64-linux-gnu)
-  endif()
 
   # Find the include path
   find_path(

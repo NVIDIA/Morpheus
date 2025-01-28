@@ -1,4 +1,4 @@
-# Copyright (c) 2023-2024, NVIDIA CORPORATION.
+# Copyright (c) 2023-2025, NVIDIA CORPORATION.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -15,8 +15,9 @@
 import logging
 
 import mrc
-from mrc.core.node import Broadcast
+from mrc.core.node import Router
 
+from morpheus.messages import ControlMessage
 from morpheus.utils.loader_ids import FSSPEC_LOADER
 from morpheus.utils.module_ids import DATA_LOADER
 from morpheus.utils.module_ids import MORPHEUS_MODULE_NAMESPACE
@@ -165,7 +166,7 @@ def dfp_deployment(builder: mrc.Builder):
     #                                        |
     #                                        v
     #                     +-------------------------------------+
-    #                     |              broadcast              |
+    #                     |                router               |
     #                     +-------------------------------------+
     #                               /                   \
     #                              /                     \
@@ -205,13 +206,21 @@ def dfp_deployment(builder: mrc.Builder):
                                                     "dfp_inference_pipe",
                                                     dfp_inference_pipe_conf)
 
-    # Create broadcast node to fork the pipeline.
-    broadcast = Broadcast(builder, "broadcast")
+    def router_key_fn(cm: ControlMessage) -> str:
+        if cm.has_task("training"):
+            return "training"
+        if cm.has_task("inference"):
+            return "inference"
+
+        raise ValueError("Control message does not have a valid task.")
+
+    # Create router node to fork the pipeline.
+    router = Router(builder, "router", router_keys=["training", "inference"], key_fn=router_key_fn)
 
     # Make an edge between modules
-    builder.make_edge(fsspec_dataloader_module.output_port("output"), broadcast)
-    builder.make_edge(broadcast, dfp_training_pipe_module.input_port("input"))
-    builder.make_edge(broadcast, dfp_inference_pipe_module.input_port("input"))
+    builder.make_edge(fsspec_dataloader_module.output_port("output"), router)
+    builder.make_edge(router.get_source("training"), dfp_training_pipe_module.input_port("input"))
+    builder.make_edge(router.get_source("inference"), dfp_inference_pipe_module.input_port("input"))
 
     out_nodes = [dfp_training_pipe_module.output_port("output"), dfp_inference_pipe_module.output_port("output")]
 

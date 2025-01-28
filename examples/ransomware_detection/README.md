@@ -1,5 +1,5 @@
 <!--
-SPDX-FileCopyrightText: Copyright (c) 2022-2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+SPDX-FileCopyrightText: Copyright (c) 2022-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 SPDX-License-Identifier: Apache-2.0
 
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -35,7 +35,7 @@ Pull Docker image from NGC (https://ngc.nvidia.com/catalog/containers/nvidia:tri
 Example:
 
 ```bash
-docker pull nvcr.io/nvidia/morpheus/morpheus-tritonserver-models:24.10
+docker pull nvcr.io/nvidia/morpheus/morpheus-tritonserver-models:25.02
 ```
 
 ##### Start Triton Inference Server Container
@@ -43,7 +43,7 @@ From the Morpheus repo root directory, run the following to launch Triton and lo
 ```bash
 # Run Triton in explicit mode
 docker run --rm -ti --gpus=all -p8000:8000 -p8001:8001 -p8002:8002 \
-    nvcr.io/nvidia/morpheus/morpheus-tritonserver-models:24.10 \
+    nvcr.io/nvidia/morpheus/morpheus-tritonserver-models:25.02 \
     tritonserver --model-repository=/models/triton-model-repo \
                  --exit-on-error=false \
                  --model-control-mode=explicit \
@@ -72,7 +72,7 @@ python examples/ransomware_detection/run.py --server_url=localhost:8000 \
               --sliding_window=3 \
               --model_name=ransomw-model-short-rf \
               --input_glob=./examples/data/appshield/*/snapshot-*/*.json \
-              --output_file=./ransomware_detection_output.jsonlines
+              --output_file=.tmp/output/ransomware_detection_output.jsonlines
 ```
 
 Input features for a short model can be taken from every three snapshots sequence, such as (1, 2, 3), or (2, 3, 4). The sliding window represents the number of subsequent snapshots that need to be taken into consideration when generating the input for a model. Sliding window for the medium model is `5` and for the long model it is `10`.
@@ -88,22 +88,24 @@ Usage: run.py [OPTIONS]
 
 Options:
   --debug BOOLEAN
-  --num_threads INTEGER RANGE     Number of internal pipeline threads to use
+  --num_threads INTEGER RANGE     Number of internal pipeline threads to use.
                                   [x>=1]
-  --n_dask_workers INTEGER RANGE  Number of dask workers  [x>=2]
+  --n_dask_workers INTEGER RANGE  Number of dask workers.  [x>=1]
   --threads_per_dask_worker INTEGER RANGE
-                                  Number of threads per each dask worker
-                                  [x>=2]
+                                  Number of threads per each dask worker.
+                                  [x>=1]
   --model_max_batch_size INTEGER RANGE
-                                  Max batch size to use for the model  [x>=1]
-  --model_fea_length INTEGER RANGE
-                                  Features length to use for the model  [x>=1]
-  --features_file TEXT            File path for ransomware detection features
+                                  Max batch size to use for the model.  [x>=1]
+  --pipeline_batch_size INTEGER RANGE
+                                  Internal batch size for the pipeline. Can be
+                                  much larger than the model batch size.
+                                  [x>=1]
+  --conf_file TEXT                Ransomware detection configuration filepath.
   --model_name TEXT               The name of the model that is deployed on
-                                  Tritonserver
-  --server_url TEXT               Tritonserver url  [required]
+                                  Tritonserver.
+  --server_url TEXT               Tritonserver url.  [required]
   --sliding_window INTEGER RANGE  Sliding window to be used for model input
-                                  request  [x>=1]
+                                  request.  [x>=3]
   --input_glob TEXT               Input glob pattern to match files to read.
                                   For example,
                                   './input_dir/*/snapshot-*/*.json' would read
@@ -120,6 +122,6 @@ Options:
   --output_file TEXT              The path to the file where the inference
                                   output will be saved.
   --help                          Show this message and exit.
-  ```
+```
 
 > **Note**: There is a known race condition in `dask.distributed` which occasionally causes `tornado.iostream.StreamClosedError` to be raised during shutdown, but does not affect the output of the pipeline. If you see this exception during shutdown, it is typically safe to ignore unless it corresponds to other undesirable behavior. For more information see ([#2026](https://github.com/nv-morpheus/Morpheus/issues/2026)).

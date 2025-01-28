@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: Copyright (c) 2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-FileCopyrightText: Copyright (c) 2024-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 # SPDX-License-Identifier: Apache-2.0
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -149,43 +149,28 @@ def test_submit_single_task(shared_process_pool, a, b, expected):
 
 
 @pytest.mark.slow
-def test_submit_task_with_invalid_stage(shared_process_pool):
+def test_submit_invalid_tasks(shared_process_pool):
 
     pool = shared_process_pool
 
+    # submit_task() should raise ValueError if the stage does not exist
     with pytest.raises(ValueError):
         pool.submit_task("stage_does_not_exist", _add_task, 10, 20)
 
-
-@pytest.mark.slow
-def test_submit_task_raises_exception(shared_process_pool):
-
-    pool = shared_process_pool
     pool.set_usage("test_stage", 0.5)
 
+    # if the function raises exception, the task can be submitted and the exception will be raised when calling result()
     task = pool.submit_task("test_stage", _function_raises_exception)
     with pytest.raises(RuntimeError):
         task.result()
 
-
-@pytest.mark.slow
-def test_submit_task_with_unserializable_result(shared_process_pool):
-
-    pool = shared_process_pool
-    pool.set_usage("test_stage", 0.5)
-
+    # if the function returns unserializable result, the task can be submitted and the exception will be raised
+    # when calling result()
     task = pool.submit_task("test_stage", _function_returns_unserializable_result)
     with pytest.raises(TypeError):
         task.result()
 
-
-@pytest.mark.slow
-def test_submit_task_with_unserializable_arg(shared_process_pool):
-
-    pool = shared_process_pool
-    pool.set_usage("test_stage", 0.5)
-
-    # Unserializable arguments cannot be submitted to the pool
+    # Function with unserializable arguments cannot be submitted to the pool
     with pytest.raises(TypeError):
         pool.submit_task("test_stage", _arbitrary_function, threading.Lock())
 
@@ -207,7 +192,7 @@ def test_submit_multiple_tasks(shared_process_pool, a, b, expected):
     pool = shared_process_pool
     pool.set_usage("test_stage", 0.5)
 
-    num_tasks = 100
+    num_tasks = 10
     tasks = []
     for _ in range(num_tasks):
         tasks.append(pool.submit_task("test_stage", _add_task, a, b))

@@ -1,5 +1,5 @@
 #!/bin/bash
-# SPDX-FileCopyrightText: Copyright (c) 2022-2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-FileCopyrightText: Copyright (c) 2022-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 # SPDX-License-Identifier: Apache-2.0
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -20,6 +20,14 @@ SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
 pushd ${SCRIPT_DIR} &> /dev/null
 export MORPHEUS_ROOT=${MORPHEUS_ROOT:-"$(git rev-parse --show-toplevel)"}
 popd &> /dev/null
+
+HOST_ARCH=$(dpkg --print-architecture)
+DOCKER_TARGET_ARCH=${DOCKER_TARGET_ARCH:-${HOST_ARCH}}
+
+if [ ${DOCKER_TARGET_ARCH} != ${HOST_ARCH} ]; then
+    echo -n "Performing cross-build for ${DOCKER_TARGET_ARCH} on ${HOST_ARCH}, please ensure qemu is installed, "
+    echo "details in ${MORPHEUS_ROOT}/external/utilities/ci/runner/README.md"
+fi
 
 # Determine the relative path from $PWD to $MORPHEUS_ROOT
 MORPHEUS_ROOT_HOST=${MORPHEUS_ROOT_HOST:-"$(realpath --relative-to=${PWD} ${MORPHEUS_ROOT})"}
@@ -45,6 +53,7 @@ DOCKER_EXTRA_ARGS=${DOCKER_EXTRA_ARGS:-""}
 DOCKER_ARGS="-t ${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}"
 DOCKER_ARGS="${DOCKER_ARGS} --build-arg FROM_IMAGE=${FROM_IMAGE}"
 DOCKER_ARGS="${DOCKER_ARGS} --build-arg FROM_IMAGE_TAG=${FROM_IMAGE_TAG}"
+DOCKER_ARGS="${DOCKER_ARGS} --platform=linux/${DOCKER_TARGET_ARCH}"
 DOCKER_ARGS="${DOCKER_ARGS} --network=host"
 
 # Last add any extra args (duplicates override earlier ones)

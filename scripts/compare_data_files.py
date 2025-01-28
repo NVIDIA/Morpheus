@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# SPDX-FileCopyrightText: Copyright (c) 2022-2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-FileCopyrightText: Copyright (c) 2022-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 # SPDX-License-Identifier: Apache-2.0
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -66,7 +66,7 @@ def main():
                          abs_tol=args.abs_tol,
                          rel_tol=args.rel_tol)
 
-    if results['diff_rows'] > 0:
+    if results['diff_rows'] > 0 or results['diff_cols'] > 0:
         sys.exit(1)
 
 

@@ -1,5 +1,5 @@
 <!--
-SPDX-FileCopyrightText: Copyright (c) 2022-2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+SPDX-FileCopyrightText: Copyright (c) 2022-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 SPDX-License-Identifier: Apache-2.0
 
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -26,7 +26,7 @@ Install packages for training GNN model.
 ```bash
 mamba env update \
   -n ${CONDA_DEFAULT_ENV} \
-  --file ./conda/environments/model-utils-125_arch-x86_64.yaml
+  --file ./conda/environments/model-utils-125_arch-$(arch).yaml
 ```
 
 ### Options for training and tuning models.

@@ -1,4 +1,5 @@
 include morpheus/_version.py
-include morpheus/requirements_morpheus_core.txt
+include morpheus/requirements_morpheus_core_arch-aarch64.txt
+include morpheus/requirements_morpheus_core_arch-x86_64.txt
 recursive-include morpheus/data *
 recursive-include morpheus *.cpython*.so py.typed *.pyi

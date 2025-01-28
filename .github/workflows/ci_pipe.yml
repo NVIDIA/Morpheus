@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: Copyright (c) 2022-2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-FileCopyrightText: Copyright (c) 2022-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 # SPDX-License-Identifier: Apache-2.0
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -105,7 +105,7 @@ jobs:
 
   build:
     name: Build
-    runs-on: linux-amd64-cpu16
+    runs-on: linux-${{ matrix.arch }}-cpu16
     timeout-minutes: 60
     container:
       credentials:
@@ -114,6 +114,8 @@ jobs:
       image: ${{ inputs.container }}
     strategy:
       fail-fast: true
+      matrix:
+        arch: ["amd64", "arm64"]
 
     steps:
       - name: Checkout
@@ -130,13 +132,13 @@ jobs:
           aws-region: ${{ vars.AWS_REGION }}
           role-duration-seconds: 43200 # 12h
 
-      - name: Build:linux:x86_64:gcc
+      - name: Build:linux:${{ matrix.arch }}:gcc
         shell: bash
         run: ./morpheus/ci/scripts/github/build.sh
 
   test:
     name: Test
-    runs-on: linux-amd64-gpu-v100-latest-1
+    runs-on: ${{ matrix.runner }}
     # Consider lowering this back down to 60 minutes per https://github.com/nv-morpheus/Morpheus/issues/1948
     timeout-minutes: 90
     container:
@@ -150,6 +152,13 @@ jobs:
         PARALLEL_LEVEL: '10'
     strategy:
       fail-fast: true
+      matrix:
+        arch: ["amd64", "arm64"]
+        include:
+          - runner: linux-amd64-gpu-v100-latest-1
+            arch: "amd64"
+          - runner: linux-arm64-gpu-a100-latest-1
+            arch: "arm64"
 
     steps:
       - name: Checkout
@@ -166,7 +175,7 @@ jobs:
           aws-region: ${{ vars.AWS_REGION }}
           role-duration-seconds: 43200 # 12h
 
-      - name: Test:linux:x86_64:gcc
+      - name: Test:linux:${{ matrix.arch }}:gcc
         shell: bash
         run: ./morpheus/ci/scripts/github/test.sh
 
@@ -208,8 +217,8 @@ jobs:
     name: Conda Package
     if: ${{ inputs.conda_run_build }}
     needs: [documentation, test]
-    runs-on: linux-amd64-gpu-v100-latest-1
-    timeout-minutes: 60
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 90
     container:
       image: ${{ inputs.base_container }}
       options: --cap-add=sys_nice
@@ -218,6 +227,13 @@ jobs:
         PARALLEL_LEVEL: '10'
     strategy:
       fail-fast: true
+      matrix:
+        arch: ["amd64", "arm64"]
+        include:
+          - runner: linux-amd64-gpu-v100-latest-1
+            arch: "amd64"
+          - runner: linux-arm64-cpu16
+            arch: "arm64"
 
     steps:
       - name: Checkout
@@ -235,7 +251,7 @@ jobs:
           aws-region: ${{ vars.AWS_REGION }}
           role-duration-seconds: 43200 # 12h
 
-      - name: Build morpheus-core conda package
+      - name: Build morpheus-core:${{ matrix.arch }} conda package
         shell: bash
         env:
           CONDA_TOKEN: "${{ secrets.CONDA_TOKEN }}"

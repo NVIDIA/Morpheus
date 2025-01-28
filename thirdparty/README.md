@@ -1,5 +1,5 @@
 <!--
-SPDX-FileCopyrightText: Copyright (c) 2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+SPDX-FileCopyrightText: Copyright (c) 2024-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 SPDX-License-Identifier: Apache-2.0
 
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -17,4 +17,4 @@ limitations under the License.
 
 # Source Code for OSS Packages in the NVIDIA Morpheus Docker container
 
-The source code for OSS packages which are included in the NVIDIA Morpheus Docker image is available at [https://github.com/nv-morpheus/morpheus_third_party_oss/tree/branch-24.10](https://github.com/nv-morpheus/morpheus_third_party_oss/tree/branch-24.10)
+The source code for OSS packages which are included in the NVIDIA Morpheus Docker image is available at [https://github.com/nv-morpheus/morpheus_third_party_oss/tree/branch-25.02](https://github.com/nv-morpheus/morpheus_third_party_oss/tree/branch-25.02)

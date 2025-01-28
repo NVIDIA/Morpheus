@@ -1,5 +1,5 @@
 <!--
-SPDX-FileCopyrightText: Copyright (c) 2023-2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+SPDX-FileCopyrightText: Copyright (c) 2023-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 SPDX-License-Identifier: Apache-2.0
 
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -137,9 +137,9 @@ def dfp_deployment(builder: mrc.Builder):
     ...
 
     # Make an edge between modules
-    builder.make_edge(fsspec_dataloader_module.output_port("output"), broadcast)
-    builder.make_edge(broadcast, dfp_training_pipe_module.input_port("input"))
-    builder.make_edge(broadcast, dfp_inference_pipe_module.input_port("input"))
+    builder.make_edge(fsspec_dataloader_module.output_port("output"), router)
+    builder.make_edge(router.get_source("training"), dfp_training_pipe_module.input_port("input"))
+    builder.make_edge(router.get_source("inference"), dfp_inference_pipe_module.input_port("input"))
 
     out_nodes = [dfp_training_pipe_module.output_port("output"), dfp_inference_pipe_module.output_port("output")]
 
@@ -164,12 +164,10 @@ There are a number of modules that are used in both the training and inference p
 
 Source: `python/morpheus_dfp/morpheus_dfp/modules/dfp_preproc.py`
 
-The `dfp_preproc` module is a functional component within the Morpheus framework that combines multiple data filtering and processing pipeline modules related to inference and training. This module simplifies the pipeline by consolidating various modules into a single, cohesive unit. The `dfp_preproc` module supports configuration parameters such as the cache directory, timestamp column name, pre-filter options, batching options, user splitting options, and supported data loaders for various file types.
+The `dfp_preproc` module is a functional component within the Morpheus framework that combines multiple processing pipeline modules related to inference and training. This module simplifies the pipeline by consolidating various modules into a single, cohesive unit. The `dfp_preproc` module supports configuration parameters such as the cache directory, timestamp column name, batching options, user splitting options, and supported data loaders for various file types.
 
 The module itself consists of a series of chained sub-modules, which are connected in a logical sequence:
 
-- `filter_control_message_module`
-    - Responsible for early filtering of control messages that should be not processed by the pipeline.
 - `file_batcher_module`
     - Responsible for batching files, either into a single control message in the case of an encapsulated training message, or into a series of control messages in the of streaming data.
 - `file_to_df_dataloader_module`
@@ -178,23 +176,6 @@ The module itself consists of a series of chained sub-modules, which are connect
     - Responsible for splitting the DataFrame into a series of DataFrames, one per user.
 
 For a complete reference, refer to: [`dfp_preproc`](../../modules/examples/digital_fingerprinting/dfp_preproc.md)
-
-```python
-@register_module(DFP_PREPROC, MORPHEUS_MODULE_NAMESPACE)
-def dfp_preproc(builder: mrc.Builder):
-    # Setup and configuration parsing
-    ...
-
-    # Connect the modules.
-    builder.make_edge(filter_control_message_module.output_port("output"), file_batcher_module.input_port("input"))
-    builder.make_edge(file_batcher_module.output_port("output"), file_to_df_dataloader_module.input_port("input"))
-    builder.make_edge(file_to_df_dataloader_module.output_port("output"), dfp_split_users_module.input_port("input"))
-
-    # Register input and output port for a module.
-    builder.register_module_input("input", filter_control_message_module.input_port("input"))
-    builder.register_module_output("output", dfp_split_users_module.output_port("output"))
-
-```
 
 ### Control Message Filter
 
@@ -216,13 +197,6 @@ In the case of streaming data, the file batcher will operate as it did previousl
 
 For a complete reference, refer to: [File Batcher](../../modules/core/file_batcher.md)
 
-```python
-@register_module(FILE_BATCHER, MORPHEUS_MODULE_NAMESPACE)
-def file_batcher(builder: mrc.Builder):
-    # Setup and configuration parsing
-    ...
-```
-
 ### File to DF DataLoader
 
 Source: `morpheus/loaders/file_to_df_loader.py`
@@ -241,12 +215,6 @@ The module processes control messages by extracting the user information from th
 
 For a complete reference, refer to: [DFP Split Users](../../modules/examples/digital_fingerprinting/dfp_split_users.md)
 
-```python
-@register_module(DFP_SPLIT_USERS, MORPHEUS_MODULE_NAMESPACE)
-def dfp_split_users(builder: mrc.Builder):
-    # Setup and configuration parsing
-    ...
-```
 
 ### DFP Rolling Window
 
@@ -262,12 +230,6 @@ The Rolling window module has also been updated to support an additional `batch`
 
 For a complete reference, refer to: [DFP Rolling Window](../../modules/examples/digital_fingerprinting/dfp_rolling_window.md)
 
-```python
-@register_module(DFP_ROLLING_WINDOW, MORPHEUS_MODULE_NAMESPACE)
-def dfp_rolling_window(builder: mrc.Builder):
-    # Setup and configuration parsing
-    ...
-```
 
 ### DFP Data Prep
 
@@ -278,13 +240,6 @@ The `dfp_data_prep` module is responsible for preparing data for either inferenc
 The main functionality of the module is in the `process_features` function. For each control message containing data, the function processes the columns of the data according to the given schema. The processed DataFrame is then applied to the control message payload.
 
 For a complete reference, refer to: [DFP Data Prep](../../modules/examples/digital_fingerprinting/dfp_data_prep.md)
-
-```python
-@register_module(DFP_DATA_PREP, MORPHEUS_MODULE_NAMESPACE)
-def dfp_data_prep(builder: mrc.Builder):
-    # Setup and configuration parsing
-    ...
-```
 
 ## DFP Training Pipeline
 
@@ -314,14 +269,14 @@ def dfp_training_pipe(builder: mrc.Builder):
     ...
 
     # Make an edge between the modules.
-    builder.make_edge(preproc_module.output_port("output"), dfp_rolling_window_module.input_port("input"))
-    builder.make_edge(dfp_rolling_window_module.output_port("output"), dfp_data_prep_module.input_port("input"))
-    builder.make_edge(dfp_data_prep_module.output_port("output"), dfp_training_module.input_port("input"))
-    builder.make_edge(dfp_training_module.output_port("output"), mlflow_model_writer_module.input_port("input"))
+    builder.make_edge(file_batcher_module.output_port("output"), file_to_df_dataloader_module.input_port("input"))
+    builder.make_edge(file_to_df_dataloader_module.output_port("output"), file_to_df_monitor_module.input_port("input"))
+    builder.make_edge(file_to_df_monitor_module.output_port("output"), dfp_split_users_module.input_port("input"))
+    builder.make_edge(dfp_split_users_module.output_port("output"), dfp_split_users_monitor_module.input_port("input"))
 
     # Register input and output port for a module.
-    builder.register_module_input("input", preproc_module.input_port("input"))
-    builder.register_module_output("output", mlflow_model_writer_module.output_port("output"))
+    builder.register_module_input("input", file_batcher_module.input_port("input"))
+    builder.register_module_output("output", dfp_split_users_monitor_module.output_port("output"))
 ```
 
 ### DFP Training
@@ -332,12 +287,6 @@ The `dfp_training` module function is responsible for training the model. The `o
 
 For a complete reference, refer to: [DFP Training](../../modules/examples/digital_fingerprinting/dfp_training.md)
 
-```python
-@register_module(DFP_TRAINING, MORPHEUS_MODULE_NAMESPACE)
-def dfp_inference(builder: mrc.Builder):
-    # Setup and config parsing
-    ...
-```
 
 ### MLflow Model Writer
 
@@ -349,12 +298,6 @@ For each `ControlMessage` received, containing a trained model, the function upl
 
 For a complete reference, refer to: [MLflow Model Writer](../../modules/core/mlflow_model_writer.md)
 
-```python
-@register_module(MLFLOW_MODEL_WRITER, MORPHEUS_MODULE_NAMESPACE)
-def mlflow_model_writer(builder: mrc.Builder):
-    # Setup and configuration parsing
-    ...
-```
 
 ## DFP Inference Pipeline
 
@@ -415,13 +358,6 @@ The function defines a `get_model` method to load the model for a specific user,
 
 For a complete reference, refer to: [DFP Inference](../../modules/examples/digital_fingerprinting/dfp_inference.md)
 
-```python
-@register_module(DFP_INFERENCE, MORPHEUS_MODULE_NAMESPACE)
-def dfp_inference(builder: mrc.Builder):
-    # Setup and config parsing
-    ...
-```
-
 ### Filter Detections
 
 Source: `morpheus/modules/filter_detections.py`
@@ -432,12 +368,6 @@ This module can operate in two modes, set by the copy argument. When `copy=True`
 
 The function defines the `find_detections` method to determine the filter source and identify the rows that match the filter criteria. The `filter_copy` and `filter_slice` methods are responsible for handling the filtering process based on the chosen mode.
 
-```python
-@register_module(FILTER_DETECTIONS, MORPHEUS_MODULE_NAMESPACE)
-def filter_detections(builder: mrc.Builder):
-    # Setup and config parsing
-    ...
-```
 
 For a complete reference, refer to: [Filter Detections](../../modules/core/filter_detections.md)
 
@@ -447,12 +377,6 @@ Source: `python/morpheus_dfp/morpheus_dfp/modules/dfp_postprocessing.py`
 
 The `dfp_postprocessing` module function performs post-processing tasks on the input data.
 
-```python
-@register_module(DFP_POST_PROCESSING, MORPHEUS_MODULE_NAMESPACE)
-def dfp_postprocessing(builder: mrc.Builder):
-    # Setup and config parsing
-    ...
-```
 
 For a complete reference, refer to: [DFP Post Processing](../../modules/examples/digital_fingerprinting/dfp_postprocessing.md)
 
@@ -466,12 +390,6 @@ The `convert_to_df` function converts a DataFrame to JSON lines. It takes a `Con
 
 The module function compiles the include and exclude patterns into regular expressions. It then creates a node using the `convert_to_df` function with the compiled include and exclude patterns and the specified columns.
 
-```python
-@register_module(SERIALIZE, MORPHEUS_MODULE_NAMESPACE)
-def serialize(builder: mrc.Builder):
-    # Setup and config parsing
-    ...
-```
 
 For a complete reference, refer to: [Serialize](../../modules/core/serialize.md)
 
@@ -483,12 +401,6 @@ The `write_to_file` module function writes all messages to a file.
 
 The `convert_to_strings` function takes a DataFrame (either pandas or cuDF) and converts it into the appropriate string format based on the file type (JSON or CSV). It checks whether to include the index column or not.
 
-```python
-@register_module(WRITE_TO_FILE, MORPHEUS_MODULE_NAMESPACE)
-def write_to_file(builder: mrc.Builder):
-    # Setup and config parsing
-    ...
-```
 
 For a complete reference, refer to: [Write to File](../../modules/core/write_to_file.md)
 

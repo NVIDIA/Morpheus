@@ -1,4 +1,4 @@
-# Copyright (c) 2021-2024, NVIDIA CORPORATION.
+# Copyright (c) 2021-2025, NVIDIA CORPORATION.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -65,7 +65,7 @@ EX_DATA_DIR = os.path.join(CUR_DIR, "../data")
 )
 @click.option(
     "--output_file",
-    default="./pcap_out.jsonlines",
+    default="./.tmp/output/pcap_out.jsonlines",
     help="The path to the file where the inference output will be saved.",
 )
 @click.option(

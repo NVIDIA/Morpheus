@@ -1,5 +1,5 @@
 #!/bin/bash
-# SPDX-FileCopyrightText: Copyright (c) 2021-2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-FileCopyrightText: Copyright (c) 2021-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 # SPDX-License-Identifier: Apache-2.0
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -22,7 +22,8 @@ pushd ${SCRIPT_DIR} &> /dev/null
 MORPHEUS_SUPPORT_DOCA=${MORPHEUS_SUPPORT_DOCA:-OFF}
 
 export DOCKER_IMAGE_NAME=${DOCKER_IMAGE_NAME:-"nvcr.io/nvidia/morpheus/morpheus"}
-export DOCKER_IMAGE_TAG=${DOCKER_IMAGE_TAG:-"$(git describe --tags --abbrev=0)-runtime"}
+export DOCKER_TARGET_ARCH=${DOCKER_TARGET_ARCH:-$(dpkg --print-architecture)}
+export DOCKER_IMAGE_TAG=${DOCKER_IMAGE_TAG:-"$(git describe --tags --abbrev=0)-runtime-${DOCKER_TARGET_ARCH}"}
 
 popd &> /dev/null
 
@@ -35,4 +36,4 @@ if [[ ${MORPHEUS_SUPPORT_DOCA} == @(TRUE|ON) ]]; then
 fi
 
 # Call the general run script
-${SCRIPT_DIR}/run_container.sh
+${SCRIPT_DIR}/run_container.sh "${@:-bash}"

@@ -1,5 +1,5 @@
 <!--
-# Copyright (c) 2021-2024, NVIDIA CORPORATION.
+# Copyright (c) 2021-2025, NVIDIA CORPORATION.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -42,7 +42,7 @@ Install additional required dependencies:
 ```bash
 conda env update --solver=libmamba \
   -n ${CONDA_DEFAULT_ENV} \
-  --file ./conda/environments/examples_cuda-125_arch-x86_64.yaml
+  --file ./conda/environments/examples_cuda-125_arch-$(arch).yaml
 ```
 
 

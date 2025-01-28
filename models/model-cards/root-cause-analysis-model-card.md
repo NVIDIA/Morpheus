@@ -1,5 +1,5 @@
 <!--
-SPDX-FileCopyrightText: Copyright (c) 2023-2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+SPDX-FileCopyrightText: Copyright (c) 2023-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 SPDX-License-Identifier: Apache-2.0
 
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -74,7 +74,7 @@ limitations under the License.
 ## Training Dataset:
 
 **Link:**
-* https://github.com/nv-morpheus/Morpheus/blob/branch-24.10/models/datasets/training-data/root-cause-training-data.csv <br>
+* https://github.com/nv-morpheus/Morpheus/blob/branch-25.02/models/datasets/training-data/root-cause-training-data.csv <br>
 
 **Properties (Quantity, Dataset Descriptions, Sensors):**
 * kern.log files from DGX machines <br>
@@ -82,7 +82,7 @@ limitations under the License.
 ## Evaluation Dataset:
 
 **Link:**
-* https://github.com/nv-morpheus/Morpheus/blob/branch-24.10/models/datasets/validation-data/root-cause-validation-data-input.jsonlines  <br>
+* https://github.com/nv-morpheus/Morpheus/blob/branch-25.02/models/datasets/validation-data/root-cause-validation-data-input.jsonlines  <br>
 
 **Properties (Quantity, Dataset Descriptions, Sensors):**
 * kern.log files from DGX machines <br>
@@ -141,7 +141,7 @@ limitations under the License.
 ## Model Card ++ Safety & Security Subcard
 
 ### Link the location of the repository for the training dataset.
-* https://github.com/nv-morpheus/Morpheus/blob/branch-24.10/models/datasets/training-data/root-cause-training-data.csv
+* https://github.com/nv-morpheus/Morpheus/blob/branch-25.02/models/datasets/training-data/root-cause-training-data.csv
 
 ### Describe the life critical impact (if present).
 * None

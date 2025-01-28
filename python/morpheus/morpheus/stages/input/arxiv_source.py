@@ -1,4 +1,4 @@
-# Copyright (c) 2023-2024, NVIDIA CORPORATION.
+# Copyright (c) 2023-2025, NVIDIA CORPORATION.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -37,7 +37,7 @@ if typing.TYPE_CHECKING:
 IMPORT_ERROR_MESSAGE = (
     "ArxivSource requires additional dependencies to be installed. Install them by running the following command: "
     "`conda env update --solver=libmamba -n morpheus"
-    "--file conda/environments/all_cuda-125_arch-x86_64.yaml --prune`")
+    "--file conda/environments/all_cuda-125_arch-$(arch).yaml --prune`")
 
 
 @register_stage("from-arxiv")
@@ -47,7 +47,7 @@ class ArxivSource(GpuAndCpuMixin, PreallocatorMixin, SingleOutputSource):
 
     This stage requires several additional dependencies to be installed. Install them by running the following command:
     `conda env update --solver=libmamba -n morpheus "
-    "--file conda/environments/all_cuda-125_arch-x86_64.yaml --prune`
+    "--file conda/environments/all_cuda-125_arch-$(arch).yaml --prune`
 
     Parameters
     ----------

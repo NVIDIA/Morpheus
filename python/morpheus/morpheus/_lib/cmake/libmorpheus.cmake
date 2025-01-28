@@ -1,5 +1,5 @@
 # =============================================================================
-# Copyright (c) 2020-2024, NVIDIA CORPORATION.
+# Copyright (c) 2020-2025, NVIDIA CORPORATION.
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
 # in compliance with the License. You may obtain a copy of the License at
@@ -79,6 +79,7 @@ add_library(${PROJECT_NAME}::morpheus ALIAS morpheus)
 
 target_link_libraries(morpheus
   PRIVATE
+    indicators::indicators
     matx::matx
     $<$<CONFIG:Debug>:ZLIB::ZLIB>
   PUBLIC
@@ -111,6 +112,9 @@ add_dependencies(morpheus ${cudf_helpers_target})
 
 # In debug mode, dont allow missing symbols
 target_link_options(morpheus PUBLIC "$<$<CONFIG:Debug>:-Wl,--no-allow-shlib-undefined>")
+
+# Avoid warning from the lto-wrapper about serial compilation
+target_link_options(morpheus PUBLIC "-flto=auto")
 
 # Generates an include file for specifying external linkage since everything is hidden by default
 generate_export_header(morpheus

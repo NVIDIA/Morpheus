@@ -1,4 +1,4 @@
-# Copyright (c) 2024, NVIDIA CORPORATION.
+# Copyright (c) 2024-2025, NVIDIA CORPORATION.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -61,7 +61,7 @@ logger = logging.getLogger(f"morpheus.{__name__}")
     "--out_file",
     help="Output file",
     type=click.Path(dir_okay=False),
-    default="output.csv",
+    default=".tmp/output/cpu_only_out.csv",
     required=True,
 )
 def run_pipeline(log_level: int, use_cpu_only: bool, in_file: pathlib.Path, out_file: pathlib.Path):

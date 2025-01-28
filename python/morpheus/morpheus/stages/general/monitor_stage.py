@@ -1,4 +1,4 @@
-# Copyright (c) 2021-2024, NVIDIA CORPORATION.
+# Copyright (c) 2021-2025, NVIDIA CORPORATION.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -19,9 +19,14 @@ import mrc
 from mrc.core import operators as ops
 from tqdm import tqdm
 
+import morpheus._lib.stages as _stages
 from morpheus.cli.register_stage import register_stage
+from morpheus.common import IndicatorsFontStyle
+from morpheus.common import IndicatorsTextColor
 from morpheus.config import Config
 from morpheus.controllers.monitor_controller import MonitorController
+from morpheus.messages import ControlMessage
+from morpheus.messages import MessageMeta
 from morpheus.pipeline.execution_mode_mixins import GpuAndCpuMixin
 from morpheus.pipeline.pass_thru_type_mixin import PassThruTypeMixin
 from morpheus.pipeline.single_port_stage import SinglePortStage
@@ -66,8 +71,10 @@ class MonitorStage(PassThruTypeMixin, GpuAndCpuMixin, SinglePortStage):
                  description: str = "Progress",
                  smoothing: float = 0.05,
                  unit: str = "messages",
-                 delayed_start: bool = False,
+                 delayed_start: bool = True,
                  determine_count_fn: typing.Callable[[typing.Any], int] = None,
+                 text_color: IndicatorsTextColor = IndicatorsTextColor.cyan,
+                 font_style: IndicatorsFontStyle = IndicatorsFontStyle.bold,
                  log_level: LogLevels = LogLevels.INFO):
         super().__init__(c)
 
@@ -78,6 +85,8 @@ class MonitorStage(PassThruTypeMixin, GpuAndCpuMixin, SinglePortStage):
                                      unit=unit,
                                      delayed_start=delayed_start,
                                      determine_count_fn=determine_count_fn,
+                                     text_color=text_color,
+                                     font_style=font_style,
                                      log_level=log_level)
         MonitorController.controller_count += 1
 
@@ -98,7 +107,7 @@ class MonitorStage(PassThruTypeMixin, GpuAndCpuMixin, SinglePortStage):
         return (typing.Any, )
 
     def supports_cpp_node(self):
-        return False
+        return True
 
     async def start_async(self):
         """
@@ -123,11 +132,32 @@ class MonitorStage(PassThruTypeMixin, GpuAndCpuMixin, SinglePortStage):
         if not self._mc.is_enabled():
             return input_node
 
-        # Use a component so we track progress using the upstream progress engine. This will provide more accurate
-        # results
-        node = builder.make_node_component(self.unique_name,
-                                           ops.map(self._mc.progress_sink),
-                                           ops.on_completed(self._mc.sink_on_completed))
+        if self._build_cpp_node() and self._schema.input_type in (ControlMessage, MessageMeta):
+            if self._schema.input_type == ControlMessage:
+                node = _stages.MonitorControlMessageStage(builder,
+                                                          self.unique_name,
+                                                          self._mc._description,
+                                                          self._mc._unit,
+                                                          self._mc._text_color,
+                                                          self._mc._font_style,
+                                                          self._mc._determine_count_fn)
+            else:
+                node = _stages.MonitorMessageMetaStage(builder,
+                                                       self.unique_name,
+                                                       self._mc._description,
+                                                       self._mc._unit,
+                                                       self._mc._text_color,
+                                                       self._mc._font_style,
+                                                       self._mc._determine_count_fn)
+
+            node.launch_options.pe_count = self._config.num_threads
+
+        else:
+            # Use a component so we track progress using the upstream progress engine. This will provide more accurate
+            # results
+            node = builder.make_node_component(self.unique_name,
+                                               ops.map(self._mc.progress_sink),
+                                               ops.on_completed(self._mc.sink_on_completed))
 
         builder.make_edge(input_node, node)
 

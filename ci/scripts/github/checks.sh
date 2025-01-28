@@ -1,5 +1,5 @@
 #!/bin/bash
-# SPDX-FileCopyrightText: Copyright (c) 2022-2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-FileCopyrightText: Copyright (c) 2022-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 # SPDX-License-Identifier: Apache-2.0
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,7 +23,7 @@ source ${WORKSPACE}/ci/scripts/github/cmake_all.sh
 rapids-dependency-file-generator \
   --output conda \
   --file-key build \
-  --matrix "cuda=${RAPIDS_CUDA_VERSION%.*};arch=$(arch);py=${RAPIDS_PY_VERSION}" | tee "${WORKSPACE_TMP}/env.yaml"
+  --matrix "cuda=${RAPIDS_CUDA_VERSION%.*};arch=${REAL_ARCH};py=${RAPIDS_PY_VERSION}" | tee "${WORKSPACE_TMP}/env.yaml"
 
 update_conda_env "${WORKSPACE_TMP}/env.yaml"
 

@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: Copyright (c) 2023-2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-FileCopyrightText: Copyright (c) 2023-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 # SPDX-License-Identifier: Apache-2.0
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -39,6 +39,14 @@ from morpheus_llm.stages.output.write_to_vector_db_stage import WriteToVectorDBS
 EMBEDDING_SIZE = 384
 MODEL_MAX_BATCH_SIZE = 64
 MODEL_FEA_LENGTH = 512
+
+
+@pytest.fixture(name="pymilvus", scope='session', autouse=True)
+def pymilvus_fixture(pymilvus: types.ModuleType):
+    """
+    Fixture to ensure pymilvus is installed
+    """
+    yield pymilvus
 
 
 def _run_pipeline(config: Config,

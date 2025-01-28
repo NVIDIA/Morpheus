@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: Copyright (c) 2020-2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-FileCopyrightText: Copyright (c) 2020-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 # SPDX-License-Identifier: Apache-2.0
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,9 +16,9 @@
 ARG BASE
 ARG PYTHON_PACKAGE_MANAGER
 
-FROM node:22 as node
+FROM node:22 AS node
 
-FROM ${BASE} as base
+FROM ${BASE} AS base
 
 # ===== install common packages ==================================================================
 
@@ -71,11 +71,11 @@ npm install -g camouflage-server@0.15
 EOF
 
 
-FROM base as pip-base
+FROM base AS pip-base
 
 ENV DEFAULT_VIRTUAL_ENV=morpheus
 
-FROM base as conda-base
+FROM base AS conda-base
 
 ENV DEFAULT_CONDA_ENV=morpheus
 

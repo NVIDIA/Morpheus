@@ -1,4 +1,4 @@
-# Copyright (c) 2021-2024, NVIDIA CORPORATION.
+# Copyright (c) 2021-2025, NVIDIA CORPORATION.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -45,12 +45,12 @@ class _IdentityInferenceWorker(InferenceWorker):
         self._seq_length = c.feature_length
 
     def calc_output_dims(self, msg: ControlMessage) -> typing.Tuple:
-        return (msg.tensors().count, self._seq_length)
+        return (msg.tensor_count(), self._seq_length)
 
     def process(self, batch: ControlMessage, callback: typing.Callable[[TensorMemory], None]):
 
         def tmp(batch: ControlMessage, f):
-            count = batch.tensors().count
+            count = batch.tensor_count()
             f(TensorMemory(
                 count=count,
                 tensors={'probs': cp.zeros((count, self._seq_length), dtype=cp.float32)},

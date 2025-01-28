@@ -1,4 +1,4 @@
-# Copyright (c) 2021-2024, NVIDIA CORPORATION.
+# Copyright (c) 2021-2025, NVIDIA CORPORATION.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -57,16 +57,16 @@ class TritonInferenceLogParsing(TritonInferenceWorker):
     """
 
     def build_output_message(self, msg: ControlMessage) -> ControlMessage:
-        seq_ids = cp.zeros((msg.tensors().count, 3), dtype=cp.uint32)
-        seq_ids[:, 0] = cp.arange(0, msg.tensors().count, dtype=cp.uint32)
+        seq_ids = cp.zeros((msg.tensor_count(), 3), dtype=cp.uint32)
+        seq_ids[:, 0] = cp.arange(0, msg.tensor_count(), dtype=cp.uint32)
         seq_ids[:, 2] = msg.tensors().get_tensor('seq_ids')[:, 2]
 
         memory = TensorMemory(
-            count=msg.tensors().count,
+            count=msg.tensor_count(),
             tensors={
-                'confidences': cp.zeros((msg.tensors().count, self._inputs[list(self._inputs.keys())[0]].shape[1])),
-                'labels': cp.zeros((msg.tensors().count, self._inputs[list(self._inputs.keys())[0]].shape[1])),
-                'input_ids': cp.zeros((msg.tensors().count, msg.tensors().get_tensor('input_ids').shape[1])),
+                'confidences': cp.zeros((msg.tensor_count(), self._inputs[list(self._inputs.keys())[0]].shape[1])),
+                'labels': cp.zeros((msg.tensor_count(), self._inputs[list(self._inputs.keys())[0]].shape[1])),
+                'input_ids': cp.zeros((msg.tensor_count(), msg.tensors().get_tensor('input_ids').shape[1])),
                 'seq_ids': seq_ids
             })
 
@@ -154,19 +154,19 @@ class LogParsingInferenceStage(TritonInferenceStage):
         seq_offset = seq_ids[0, 0].item()
         seq_count = seq_ids[-1, 0].item() + 1 - seq_offset
 
-        input_ids[batch_offset:inf.tensors().count + batch_offset, :] = inf.tensors().get_tensor('input_ids')
-        out_seq_ids[batch_offset:inf.tensors().count + batch_offset, :] = seq_ids
+        input_ids[batch_offset:inf.tensor_count() + batch_offset, :] = inf.tensors().get_tensor('input_ids')
+        out_seq_ids[batch_offset:inf.tensor_count() + batch_offset, :] = seq_ids
 
         resp_confidences = res.get_tensor('confidences')
         resp_labels = res.get_tensor('labels')
 
         # Two scenarios:
-        if (inf.payload().count == inf.tensors().count):
+        if (inf.payload().count == inf.tensor_count()):
             assert seq_count == res.count
-            confidences[batch_offset:inf.tensors().count + batch_offset, :] = resp_confidences
-            labels[batch_offset:inf.tensors().count + batch_offset, :] = resp_labels
+            confidences[batch_offset:inf.tensor_count() + batch_offset, :] = resp_confidences
+            labels[batch_offset:inf.tensor_count() + batch_offset, :] = resp_labels
         else:
-            assert inf.tensors().count == res.count
+            assert inf.tensor_count() == res.count
 
             mess_ids = seq_ids[:, 0].get().tolist()
 

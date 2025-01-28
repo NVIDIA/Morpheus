@@ -1,4 +1,4 @@
-# Copyright (c) 2021-2024, NVIDIA CORPORATION.
+# Copyright (c) 2021-2025, NVIDIA CORPORATION.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -235,6 +235,7 @@ class Config(ConfigBase):
         """
         self._check_cpp_mode(fix_mis_match=not self.frozen)
         if not self.frozen:
+            self._validate_config()
             self.frozen = True
 
     def _check_cpp_mode(self, fix_mis_match: bool = False):
@@ -267,7 +268,6 @@ class Config(ConfigBase):
     @pipeline_batch_size.setter
     def pipeline_batch_size(self, value: int):
         self._pipeline_batch_size = value
-        self._validate_config()
 
     @property
     def model_max_batch_size(self):
@@ -276,7 +276,6 @@ class Config(ConfigBase):
     @model_max_batch_size.setter
     def model_max_batch_size(self, value: int):
         self._model_max_batch_size = value
-        self._validate_config()
 
     def _validate_config(self):
         if self._pipeline_batch_size < self._model_max_batch_size:

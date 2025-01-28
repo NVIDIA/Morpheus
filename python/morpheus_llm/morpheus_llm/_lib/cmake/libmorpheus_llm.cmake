@@ -1,5 +1,5 @@
 # =============================================================================
-# Copyright (c) 2020-2024, NVIDIA CORPORATION.
+# Copyright (c) 2020-2025, NVIDIA CORPORATION.
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
 # in compliance with the License. You may obtain a copy of the License at
@@ -59,6 +59,9 @@ target_include_directories(morpheus_llm
 
 # In debug mode, dont allow missing symbols
 target_link_options(morpheus_llm PUBLIC "$<$<CONFIG:Debug>:-Wl,--no-allow-shlib-undefined>")
+
+# Avoid warning from the lto-wrapper about serial compilation
+target_link_options(morpheus_llm PUBLIC "-flto=auto")
 
 # Ideally, we dont use glob here. But there is no good way to guarantee you dont miss anything like *.cpp
 file(GLOB_RECURSE morpheus_llm_public_headers

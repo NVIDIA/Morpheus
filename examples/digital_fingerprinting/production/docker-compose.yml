@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: Copyright (c) 2022-2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-FileCopyrightText: Copyright (c) 2022-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 # SPDX-License-Identifier: Apache-2.0
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -76,8 +76,9 @@ services:
       resources:
         reservations:
           devices:
-          - driver: nvidia
-            capabilities: [gpu]
+            - driver: nvidia
+              capabilities: [ gpu ]
+              count: all
     image: dfp_morpheus_jupyter
     container_name: jupyter
     ports:
@@ -107,8 +108,9 @@ services:
       resources:
         reservations:
           devices:
-          - driver: nvidia
-            capabilities: [gpu]
+            - driver: nvidia
+              capabilities: [ gpu ]
+              count: all
     networks:
       - frontend
       - backend
@@ -124,6 +126,24 @@ services:
       - mlflow
     profiles:
       - training
+    cap_add:
+      - sys_nice
+
+  fetch_data:
+    build:
+      context: ./
+      dockerfile: ./Dockerfile
+      target: runtime
+    image: dfp_morpheus
+    networks:
+      - frontend
+    environment:
+      # Colorize the terminal in the container if possible
+      TERM: "${TERM:-}"
+    working_dir: /workspace/examples/digital_fingerprinting
+    command: ./fetch_example_data.py all
+    volumes:
+      - ../../..:/workspace
     cap_add:
       - sys_nice
 

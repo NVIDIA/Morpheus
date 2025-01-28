@@ -1,5 +1,5 @@
 <!--
-# Copyright (c) 2021-2024, NVIDIA CORPORATION.
+# Copyright (c) 2021-2025, NVIDIA CORPORATION.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -34,14 +34,14 @@ Pull the Morpheus Triton models Docker image from NGC.
 Example:
 
 ```bash
-docker pull nvcr.io/nvidia/morpheus/morpheus-tritonserver-models:24.10
+docker pull nvcr.io/nvidia/morpheus/morpheus-tritonserver-models:25.02
 ```
 
 ##### Start Triton Inference Server Container
 From the Morpheus repo root directory, run the following to launch Triton and load the `log-parsing-onnx` model:
 
 ```bash
-docker run --rm -ti --gpus=all -p8000:8000 -p8001:8001 -p8002:8002 nvcr.io/nvidia/morpheus/morpheus-tritonserver-models:24.10 tritonserver --model-repository=/models/triton-model-repo --exit-on-error=false --model-control-mode=explicit --load-model log-parsing-onnx
+docker run --rm -ti --gpus=all -p8000:8000 -p8001:8001 -p8002:8002 nvcr.io/nvidia/morpheus/morpheus-tritonserver-models:25.02 tritonserver --model-repository=/models/triton-model-repo --exit-on-error=false --model-control-mode=explicit --load-model log-parsing-onnx
 ```
 
 ##### Verify Model Deployment
@@ -119,6 +119,6 @@ morpheus --log_level INFO \
 	monitor --description "Inference rate" --unit inf \
 	log-postprocess --vocab_path ./models/training-tuning-scripts/sid-models/resources/bert-base-cased-vocab.txt \
 		--model_config_path=./models/log-parsing-models/log-parsing-config-20220418.json \
-	to-file --filename ./log-parsing-output.jsonlines --overwrite  \
+	to-file --filename .tmp/output/log-parsing-cli-output.jsonlines --overwrite  \
 	monitor --description "Postprocessing rate"
 ```

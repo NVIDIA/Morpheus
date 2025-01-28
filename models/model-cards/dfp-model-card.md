@@ -1,5 +1,5 @@
 <!--
-SPDX-FileCopyrightText: Copyright (c) 2023-2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+SPDX-FileCopyrightText: Copyright (c) 2023-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 SPDX-License-Identifier: Apache-2.0
 
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -65,36 +65,36 @@ The model architecture consists of an Autoencoder, where the reconstruction loss
 * Linux<br>
 
 ## Model Versions:
-* https://github.com/nv-morpheus/Morpheus/blob/branch-24.10/models/dfp-models/hammah-role-g-20211017-dill.pkl
-* https://github.com/nv-morpheus/Morpheus/blob/branch-24.10/models/dfp-models/hammah-user123-20211017-dill.pkl
+* https://github.com/nv-morpheus/Morpheus/blob/branch-25.02/models/dfp-models/hammah-role-g-20211017-dill.pkl
+* https://github.com/nv-morpheus/Morpheus/blob/branch-25.02/models/dfp-models/hammah-user123-20211017-dill.pkl
 
 # Training & Evaluation:
 
 ## Training Dataset:
 
 **Link:**
-* https://github.com/nv-morpheus/Morpheus/tree/branch-24.10/models/datasets/training-data/cloudtrail
+* https://github.com/nv-morpheus/Morpheus/tree/branch-25.02/models/datasets/training-data/cloudtrail
 
 **Properties (Quantity, Dataset Descriptions, Sensors):**
 
 The training dataset consists of AWS CloudTrail logs. It contains logs from two entities, providing information about their activities within the AWS environment.
-* [hammah-role-g-training-part1.json](https://github.com/nv-morpheus/Morpheus/blob/branch-24.10/models/datasets/training-data/cloudtrail/hammah-role-g-training-part1.json): 700 records <br>
-* [hammah-role-g-training-part2.json](https://github.com/nv-morpheus/Morpheus/blob/branch-24.10/models/datasets/training-data/cloudtrail/hammah-role-g-training-part2.json): 1187 records <br>
-* [hammah-user123-training-part2.json](https://github.com/nv-morpheus/Morpheus/blob/branch-24.10/models/datasets/training-data/cloudtrail/hammah-user123-training-part2.json): 1000 records <br>
-* [hammah-user123-training-part3.json](https://github.com/nv-morpheus/Morpheus/blob/branch-24.10/models/datasets/training-data/cloudtrail/hammah-user123-training-part3.json): 1000 records <br>
-* [hammah-user123-training-part4.json](https://github.com/nv-morpheus/Morpheus/blob/branch-24.10/models/datasets/training-data/cloudtrail/hammah-user123-training-part4.json): 387 records <br>
+* [hammah-role-g-training-part1.json](https://github.com/nv-morpheus/Morpheus/blob/branch-25.02/models/datasets/training-data/cloudtrail/hammah-role-g-training-part1.json): 700 records <br>
+* [hammah-role-g-training-part2.json](https://github.com/nv-morpheus/Morpheus/blob/branch-25.02/models/datasets/training-data/cloudtrail/hammah-role-g-training-part2.json): 1187 records <br>
+* [hammah-user123-training-part2.json](https://github.com/nv-morpheus/Morpheus/blob/branch-25.02/models/datasets/training-data/cloudtrail/hammah-user123-training-part2.json): 1000 records <br>
+* [hammah-user123-training-part3.json](https://github.com/nv-morpheus/Morpheus/blob/branch-25.02/models/datasets/training-data/cloudtrail/hammah-user123-training-part3.json): 1000 records <br>
+* [hammah-user123-training-part4.json](https://github.com/nv-morpheus/Morpheus/blob/branch-25.02/models/datasets/training-data/cloudtrail/hammah-user123-training-part4.json): 387 records <br>
 
 ## Evaluation Dataset:
 **Link:**
-* https://github.com/nv-morpheus/Morpheus/tree/branch-24.10/models/datasets/validation-data/cloudtrail <br>
+* https://github.com/nv-morpheus/Morpheus/tree/branch-25.02/models/datasets/validation-data/cloudtrail <br>
 
 **Properties (Quantity, Dataset Descriptions, Sensors):**
 
 The evaluation dataset consists of AWS CloudTrail logs. It contains logs from two entities, providing information about their activities within the AWS environment.
-* [hammah-role-g-validation.json](https://github.com/nv-morpheus/Morpheus/blob/branch-24.10/models/datasets/validation-data/cloudtrail/hammah-role-g-validation.json): 314 records
-* [hammah-user123-validation-part1.json](https://github.com/nv-morpheus/Morpheus/blob/branch-24.10/models/datasets/validation-data/cloudtrail/hammah-user123-validation-part1.json): 300 records
-* [hammah-user123-validation-part2.json](https://github.com/nv-morpheus/Morpheus/blob/branch-24.10/models/datasets/validation-data/cloudtrail/hammah-user123-validation-part2.json): 300 records
-* [hammah-user123-validation-part3.json](https://github.com/nv-morpheus/Morpheus/blob/branch-24.10/models/datasets/validation-data/cloudtrail/hammah-user123-validation-part3.json): 247 records
+* [hammah-role-g-validation.json](https://github.com/nv-morpheus/Morpheus/blob/branch-25.02/models/datasets/validation-data/cloudtrail/hammah-role-g-validation.json): 314 records
+* [hammah-user123-validation-part1.json](https://github.com/nv-morpheus/Morpheus/blob/branch-25.02/models/datasets/validation-data/cloudtrail/hammah-user123-validation-part1.json): 300 records
+* [hammah-user123-validation-part2.json](https://github.com/nv-morpheus/Morpheus/blob/branch-25.02/models/datasets/validation-data/cloudtrail/hammah-user123-validation-part2.json): 300 records
+* [hammah-user123-validation-part3.json](https://github.com/nv-morpheus/Morpheus/blob/branch-25.02/models/datasets/validation-data/cloudtrail/hammah-user123-validation-part3.json): 247 records
 
 ## Inference:
 **Engine:**
@@ -133,7 +133,7 @@ NVIDIA believes Trustworthy AI is a shared responsibility and we have establishe
 
 ### Describe how this model works.
 * The model works by training on baseline behaviors and subsequently detecting deviations from the established baseline, triggering alerts accordingly.
-* [Training notebook](https://github.com/nv-morpheus/Morpheus/blob/branch-24.10/models/training-tuning-scripts/dfp-models/hammah-20211017.ipynb)
+* [Training notebook](https://github.com/nv-morpheus/Morpheus/blob/branch-25.02/models/training-tuning-scripts/dfp-models/hammah-20211017.ipynb)
 
 ### List the technical limitations of the model.
 * The model expects CloudTrail logs with specific features that match the training dataset. Data lacking the required features or requiring a different feature set may not be compatible with the model.
@@ -153,7 +153,7 @@ NVIDIA believes Trustworthy AI is a shared responsibility and we have establishe
 ## Model Card ++ Safety & Security Subcard
 
 ### Link the location of the repository for the training dataset (if able to share).
-* https://github.com/nv-morpheus/Morpheus/tree/branch-24.10/models/datasets/training-data/cloudtrail
+* https://github.com/nv-morpheus/Morpheus/tree/branch-25.02/models/datasets/training-data/cloudtrail
 
 ### Describe the life critical impact (if present).
 * None
@@ -194,7 +194,7 @@ NVIDIA believes Trustworthy AI is a shared responsibility and we have establishe
 * No
 
 ### Are we able to identify and trace source of dataset?
-* Yes ([fully synthetic dataset](https://github.com/nv-morpheus/Morpheus/tree/branch-24.10/models/datasets/training-data/cloudtrail))
+* Yes ([fully synthetic dataset](https://github.com/nv-morpheus/Morpheus/tree/branch-25.02/models/datasets/training-data/cloudtrail))
 
 ### Does data labeling (annotation, metadata) comply with privacy laws?
 * Not applicable (dataset is fully synthetic)

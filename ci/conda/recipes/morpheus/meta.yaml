@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: Copyright (c) 2022-2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-FileCopyrightText: Copyright (c) 2022-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 # SPDX-License-Identifier: Apache-2.0
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -69,6 +69,7 @@ outputs:
         - cudf {{ rapids_version }}
         - cython 3.0.*
         - glog >=0.7.1,<0.8
+        - indicators=2.3
         - libcudf {{ rapids_version }}
         - librdkafka >=1.9.2,<1.10.0a0
         - mrc {{ minor_version }}

@@ -1,4 +1,4 @@
-# Copyright (c) 2022-2024, NVIDIA CORPORATION.
+# Copyright (c) 2022-2025, NVIDIA CORPORATION.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -211,13 +211,14 @@ def dfp_inference_pipe(builder: mrc.Builder):
     ts_column_name = config.get("timestamp_column_name")
     monitor_options = config.get("monitor_options", {})
 
+    preproc_monitor_options = monitor_options.copy()
+    if "name_postfix" not in preproc_monitor_options:
+        preproc_monitor_options["name_postfix"] = "[inference_pipe]"
+
     preproc_options = {
         "batching_options": config.get("batching_options", {}),
         "cache_dir": cache_dir,
-        "monitor_options": monitor_options,
-        "pre_filter_options": {
-            "enable_task_filtering": True, "filter_task_type": "inference"
-        },
+        "monitor_options": preproc_monitor_options,
         "timestamp_column_name": ts_column_name,
         "user_splitting_options": config.get("user_splitting_options", {}),
     }

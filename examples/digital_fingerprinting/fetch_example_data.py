@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# SPDX-FileCopyrightText: Copyright (c) 2022-2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-FileCopyrightText: Copyright (c) 2022-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 # SPDX-License-Identifier: Apache-2.0
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -543,6 +543,8 @@ def fetch_dataset(dataset):
     fs_hndl = s3fs.S3FileSystem(anon=True)
     s3_base_path = os.path.join(S3_BASE_PATH, dataset)
 
+    download_count = 0
+
     train_dir = f"{EXAMPLE_DATA_DIR}/dfp/{dataset}-training-data/"
     if not os.path.exists(train_dir):
         os.makedirs(train_dir)
@@ -552,6 +554,7 @@ def fetch_dataset(dataset):
         if not exists(train_dir + f):
             print(f"Downloading {f}")
             fs_hndl.get_file(os.path.join(s3_base_path, f), train_dir + f)
+            download_count += 1
 
     infer_dir = f"{EXAMPLE_DATA_DIR}/dfp/{dataset}-inference-data/"
     if not exists(infer_dir):
@@ -562,6 +565,12 @@ def fetch_dataset(dataset):
         if not os.path.exists(infer_dir + f):
             print(f"Downloading {f}")
             fs_hndl.get_file(os.path.join(s3_base_path, f), infer_dir + f)
+            download_count += 1
+
+    if download_count == 0:
+        print(f"No new files to download for {dataset} dataset")
+    else:
+        print(f"Download complete for {dataset} dataset")
 
 
 def parse_args():

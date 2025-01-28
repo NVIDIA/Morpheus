@@ -1,4 +1,4 @@
-# Copyright (c) 2021-2024, NVIDIA CORPORATION.
+# Copyright (c) 2021-2025, NVIDIA CORPORATION.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -60,7 +60,7 @@ from morpheus.utils.logger import configure_logging
 )
 @click.option(
     "--output_file",
-    default="log-parsing-output.jsonlines",
+    default=".tmp/output/log-parsing-output.jsonlines",
     help="The path to the file where the inference output will be saved.",
 )
 @click.option('--model_vocab_hash_file',

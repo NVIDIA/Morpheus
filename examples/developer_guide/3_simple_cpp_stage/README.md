@@ -1,5 +1,5 @@
 <!--
-SPDX-FileCopyrightText: Copyright (c) 2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+SPDX-FileCopyrightText: Copyright (c) 2024-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 SPDX-License-Identifier: Apache-2.0
 
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -21,5 +21,5 @@ limitations under the License.
 |-------------|-----------|-------|
 | Conda | ✔ | |
 | Morpheus Docker Container | ✔ | |
-| Morpheus Release Container | ✔ | Requires adding development packages to the container's Conda environment via `conda env update --solver=libmamba -n morpheus --file /workspace/conda/environments/dev_cuda-125_arch-x86_64.yaml` |
+| Morpheus Release Container | ✔ | Requires adding development packages to the container's Conda environment via `conda env update --solver=libmamba -n morpheus --file /workspace/conda/environments/dev_cuda-125_arch-$(arch).yaml` |
 | Dev Container | ✔ |  |

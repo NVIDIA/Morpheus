@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# SPDX-FileCopyrightText: Copyright (c) 2022-2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-FileCopyrightText: Copyright (c) 2022-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 # SPDX-License-Identifier: Apache-2.0
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -38,7 +38,7 @@ def _verify_metadata(msg: messages.ControlMessage, metadata: dict):
 
 @pytest.mark.gpu_and_cpu_mode
 def test_control_message_init(dataset: DatasetManager):
-    # Explicitly performing copies of the metadata, config and the dataframe, to ensure tha the original data is not
+    # Explicitly performing copies of the metadata, config and the dataframe, to ensure that the original data is not
     # being modified in place in some way.
     msg = messages.ControlMessage()
     assert msg.get_metadata() == {}  # pylint: disable=use-implicit-booleaness-not-comparison
@@ -318,9 +318,9 @@ def test_tensors_setting_and_getting(config: Config):
 
     message.tensors(tensor_memory)
 
-    retrieved_tensors = message.tensors()
-    assert retrieved_tensors.count == data["input_ids"].shape[0], "Tensor count mismatch."
+    assert message.tensor_count() == data["input_ids"].shape[0], "Tensor count mismatch."
 
+    retrieved_tensors = message.tensors()
     for key, val in data.items():
         assert array_pkg.allclose(retrieved_tensors.get_tensor(key), val), f"Mismatch in tensor data for {key}."
 
@@ -363,6 +363,7 @@ def test_tensor_manipulation_after_retrieval(config: Config):
     new_tensor = array_pkg.array([4, 5, 6])
     retrieved_tensors.set_tensor("new_tensor", new_tensor)
 
+    assert message.tensor_count() == tokenized_data["input_ids"].shape[0], "Tensor count mismatch"
     assert array_pkg.allclose(retrieved_tensors.get_tensor("new_tensor"), new_tensor), "New tensor data mismatch."
 
 
@@ -389,8 +390,9 @@ def test_tensor_update(config: Config):
 
     tensor_memory.set_tensors(new_tensors)
 
-    updated_tensors = message.tensors()
+    assert message.tensor_count() == tokenized_data["input_ids"].shape[0], "Tensor count mismatch"
 
+    updated_tensors = message.tensors()
     for key, val in new_tensors.items():
         assert array_pkg.allclose(updated_tensors.get_tensor(key), val), f"Mismatch in updated tensor data for {key}."
 
@@ -408,6 +410,7 @@ def test_update_individual_tensor(config: Config):
     tensor_memory.set_tensor("input_ids", update_data["input_ids"])
     retrieved_tensors = message.tensors()
 
+    assert message.tensor_count() == initial_data["input_ids"].shape[0], "Tensor count mismatch"
     # Check updated tensor
     assert array_pkg.allclose(retrieved_tensors.get_tensor("input_ids"),
                               update_data["input_ids"]), "Input IDs update mismatch."
@@ -422,8 +425,9 @@ def test_behavior_with_empty_tensors():
     tensor_memory = TensorMemory(count=0)
     message.tensors(tensor_memory)
 
+    assert message.tensor_count() == 0, "Tensor count should be 0 for empty tensor memory."
+
     retrieved_tensors = message.tensors()
-    assert retrieved_tensors.count == 0, "Tensor count should be 0 for empty tensor memory."
     assert len(retrieved_tensors.tensor_names) == 0, "There should be no tensor names for empty tensor memory."
 
 
@@ -442,8 +446,8 @@ def test_consistency_after_multiple_operations(config: Config):
     new_tensor = {"new_tensor": array_pkg.array([7, 8, 9])}
     tensor_memory.set_tensor("new_tensor", new_tensor["new_tensor"])
 
+    assert message.tensor_count() == initial_data["input_ids"].shape[0], "Tensor count mismatch."
     retrieved_tensors = message.tensors()
-    assert retrieved_tensors.count == 3, "Tensor count mismatch after multiple operations."
     assert array_pkg.allclose(retrieved_tensors.get_tensor("input_ids"),
                               array_pkg.array([4, 5, 6])), "Mismatch in input_ids after update."
     assert array_pkg.allclose(retrieved_tensors.get_tensor("new_tensor"),

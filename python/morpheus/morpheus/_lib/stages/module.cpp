@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: Copyright (c) 2021-2024, NVIDIA CORPORATION &
+ * SPDX-FileCopyrightText: Copyright (c) 2021-2025, NVIDIA CORPORATION &
  * AFFILIATES. All rights reserved. SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -26,6 +26,7 @@
 #include "morpheus/stages/http_server_source_stage.hpp"  // for HttpServerSourceStage, HttpServerSourceStageInterfac...
 #include "morpheus/stages/inference_client_stage.hpp"    // for InferenceClientStage, InferenceClientStageInterfaceP...
 #include "morpheus/stages/kafka_source.hpp"              // for KafkaSourceStage, KafkaSourceStageInterfaceProxy
+#include "morpheus/stages/monitor.hpp"                   // for MonitorStage, MonitorStageInterfaceProxy
 #include "morpheus/stages/preallocate.hpp"               // for PreallocateStage, PreallocateStageInterfaceProxy
 #include "morpheus/stages/preprocess_fil.hpp"            // for PreprocessFILStage, PreprocessFILStageInterfaceProxy
 #include "morpheus/stages/preprocess_nlp.hpp"            // for PreprocessNLPStage, PreprocessNLPStageInterfaceProxy
@@ -34,6 +35,8 @@
 #include "morpheus/utilities/http_server.hpp"            // for DefaultMaxPayloadSize
 #include "morpheus/version.hpp"                          // for morpheus_VERSION_MAJOR, morpheus_VERSION_MINOR, morp...
 
+#include <indicators/color.hpp>       // for Color
+#include <indicators/font_style.hpp>  // for FontStyle
 #include <mrc/segment/builder.hpp>     // for Builder
 #include <mrc/segment/object.hpp>      // for Object, ObjectProperties
 #include <mrc/utils/string_utils.hpp>  // for MRC_CONCAT_STR
@@ -43,7 +46,7 @@
 #include <pybind11/pytypes.h>          // for none, dict, str_attr
 #include <pybind11/stl.h>              // IWYU pragma: keep
 #include <pybind11/stl/filesystem.h>   // IWYU pragma: keep
-#include <pymrc/utils.hpp>             // for from_import, import
+#include <pymrc/utils.hpp>             // for import, from_import
 #include <rxcpp/rx.hpp>                // for trace_activity, decay_t
 
 #include <filesystem>  // for path
@@ -51,7 +54,6 @@
 #include <sstream>     // for operator<<, basic_ostringstream
 #include <string>      // for string
 #include <vector>      // for vector
-
 namespace morpheus {
 namespace py = pybind11;
 
@@ -189,6 +191,32 @@ PYBIND11_MODULE(stages, _module)
              py::arg("stop_after")            = 0,
              py::arg("async_commits")         = true,
              py::arg("oauth_callback")        = py::none());
+
+    py::class_<mrc::segment::Object<MonitorStage<MessageMeta>>,
+               mrc::segment::ObjectProperties,
+               std::shared_ptr<mrc::segment::Object<MonitorStage<MessageMeta>>>>(
+        _module, "MonitorMessageMetaStage", py::multiple_inheritance())
+        .def(py::init<>(&MonitorStageInterfaceProxy<MessageMeta>::init),
+             py::arg("builder"),
+             py::arg("name"),
+             py::arg("description"),
+             py::arg("unit")               = "messages",
+             py::arg("text_color")         = indicators::Color::cyan,
+             py::arg("font_style")         = indicators::FontStyle::bold,
+             py::arg("determine_count_fn") = py::none());
+
+    py::class_<mrc::segment::Object<MonitorStage<ControlMessage>>,
+               mrc::segment::ObjectProperties,
+               std::shared_ptr<mrc::segment::Object<MonitorStage<ControlMessage>>>>(
+        _module, "MonitorControlMessageStage", py::multiple_inheritance())
+        .def(py::init<>(&MonitorStageInterfaceProxy<ControlMessage>::init),
+             py::arg("builder"),
+             py::arg("name"),
+             py::arg("description"),
+             py::arg("unit")               = "messages",
+             py::arg("text_color")         = indicators::Color::cyan,
+             py::arg("font_style")         = indicators::FontStyle::bold,
+             py::arg("determine_count_fn") = py::none());
 
     py::class_<mrc::segment::Object<PreallocateStage<ControlMessage>>,
                mrc::segment::ObjectProperties,

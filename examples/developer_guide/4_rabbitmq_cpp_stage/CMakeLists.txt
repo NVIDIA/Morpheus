@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: Copyright (c) 2022-2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-FileCopyrightText: Copyright (c) 2022-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 # SPDX-License-Identifier: Apache-2.0
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -26,7 +26,7 @@ list(PREPEND CMAKE_PREFIX_PATH "$ENV{CONDA_PREFIX}")
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
 project(4_rabbitmq_cpp_stage
-  VERSION 24.10.00
+  VERSION 25.02.00
   LANGUAGES C CXX
 )
 
@@ -38,6 +38,10 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 # Set the option prefix to match the outer project before including. Must be before find_package(morpheus)
 set(OPTION_PREFIX "MORPHEUS")
+
+# Set the policy to allow for CMP0144, avoids warning about MORPHEUS_ROOT being set
+cmake_policy(SET CMP0144 NEW)
+
 find_package(morpheus REQUIRED)
 
 morpheus_utils_initialize_cpm(MORPHEUS_CACHE_DIR)

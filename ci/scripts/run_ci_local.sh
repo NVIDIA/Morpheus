@@ -1,5 +1,5 @@
 #!/bin/bash
-# SPDX-FileCopyrightText: Copyright (c) 2023-2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-FileCopyrightText: Copyright (c) 2023-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 # SPDX-License-Identifier: Apache-2.0
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -39,6 +39,7 @@ function git_ssh_to_https()
     echo $url | sed -e 's|^git@github\.com:|https://github.com/|'
 }
 
+CI_ARCH=${CI_ARCH:-$(dpkg --print-architecture)}
 MORPHEUS_ROOT=${MORPHEUS_ROOT:-$(git rev-parse --show-toplevel)}
 
 # Specifies whether to mount the current git repo (to allow changes to be persisted) or to use a clean clone (to closely
@@ -58,7 +59,7 @@ GIT_BRANCH=$(git branch --show-current)
 GIT_COMMIT=$(git log -n 1 --pretty=format:%H)
 
 LOCAL_CI_TMP=${LOCAL_CI_TMP:-${MORPHEUS_ROOT}/.tmp/local_ci_tmp}
-CONTAINER_VER=${CONTAINER_VER:-241024}
+CONTAINER_VER=${CONTAINER_VER:-250102}
 CUDA_VER=${CUDA_VER:-12.5}
 CUDA_FULL_VER=${CUDA_FULL_VER:-12.5.1}
 DOCKER_EXTRA_ARGS=${DOCKER_EXTRA_ARGS:-""}
@@ -91,6 +92,7 @@ for STAGE in "${STAGES[@]}"; do
     DOCKER_RUN_ARGS+=("-v" "${LOCAL_CI_TMP}:/ci_tmp")
     DOCKER_RUN_ARGS+=("${ENV_LIST[@]}")
     DOCKER_RUN_ARGS+=("--env STAGE=${STAGE}")
+    DOCKER_RUN_ARGS+=("--platform=linux/${CI_ARCH}")
     if [[ "${STAGE}" == "conda_libs" || "${USE_BASE}" == "1" ]]; then
         CONTAINER="${CONDA_CONTAINER}"
     elif [[ "${STAGE}" == "test" || "${USE_GPU}" == "1" ]]; then

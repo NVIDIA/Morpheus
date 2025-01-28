@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# SPDX-FileCopyrightText: Copyright (c) 2022-2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-FileCopyrightText: Copyright (c) 2022-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 # SPDX-License-Identifier: Apache-2.0
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -110,7 +110,7 @@ def test_convert_one_response():
     cm = InferenceStageT._convert_one_response(output, inf, res, batch_offset)
     assert cm.payload() == inf.payload()
     assert cm.payload().count == 4
-    assert cm.tensors().count == 4
+    assert cm.tensor_count() == 4
     assert cp.all(cm.tensors().get_tensor("probs") == res.get_tensor("probs"))
 
     # Test for the second branch

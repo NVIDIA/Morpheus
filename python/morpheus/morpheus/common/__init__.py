@@ -1,4 +1,4 @@
-# Copyright (c) 2021-2024, NVIDIA CORPORATION.
+# Copyright (c) 2021-2025, NVIDIA CORPORATION.
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
@@ -20,6 +20,8 @@ from morpheus._lib.common import FileTypes
 from morpheus._lib.common import FilterSource
 from morpheus._lib.common import HttpEndpoint
 from morpheus._lib.common import HttpServer
+from morpheus._lib.common import IndicatorsFontStyle
+from morpheus._lib.common import IndicatorsTextColor
 from morpheus._lib.common import Tensor
 from morpheus._lib.common import TypeId
 from morpheus._lib.common import determine_file_type
@@ -35,6 +37,8 @@ __all__ = [
     "FilterSource",
     "HttpEndpoint",
     "HttpServer",
+    "IndicatorsFontStyle",
+    "IndicatorsTextColor",
     "read_file_to_df",
     "Tensor",
     "typeid_is_fully_supported",

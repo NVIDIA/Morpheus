@@ -1,5 +1,5 @@
 #!/bin/bash
-# SPDX-FileCopyrightText: Copyright (c) 2022-2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-FileCopyrightText: Copyright (c) 2022-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 # SPDX-License-Identifier: Apache-2.0
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,7 +23,7 @@ source ${WORKSPACE}/ci/scripts/github/cmake_all.sh
 rapids-dependency-file-generator \
   --output conda \
   --file-key build \
-  --matrix "cuda=${RAPIDS_CUDA_VERSION%.*};arch=$(arch);py=${RAPIDS_PY_VERSION}" | tee "${WORKSPACE_TMP}/env.yaml"
+  --matrix "cuda=${RAPIDS_CUDA_VERSION%.*};arch=${REAL_ARCH};py=${RAPIDS_PY_VERSION}" | tee "${WORKSPACE_TMP}/env.yaml"
 
 update_conda_env "${WORKSPACE_TMP}/env.yaml"
 
@@ -43,22 +43,22 @@ cmake --build ${BUILD_DIR} --parallel ${PARALLEL_LEVEL}
 log_sccache_stats
 
 rapids-logger "Archiving results"
-tar cfj "${WORKSPACE_TMP}/wheel.tar.bz" ${BUILD_DIR}/python/morpheus/dist ${BUILD_DIR}/python/morpheus_llm/dist ${BUILD_DIR}/python/morpheus_dfp/dist
+tar cfj "${WORKSPACE_TMP}/wheel-${REAL_ARCH}.tar.bz" ${BUILD_DIR}/python/morpheus/dist ${BUILD_DIR}/python/morpheus_llm/dist ${BUILD_DIR}/python/morpheus_dfp/dist
 
 MORPHEUS_LIBS=($(find ${MORPHEUS_ROOT}/${BUILD_DIR}/python/morpheus/morpheus/_lib -name "*.so" -exec realpath --relative-to ${MORPHEUS_ROOT} {} \;) \
                 $(find ${MORPHEUS_ROOT}/${BUILD_DIR}/python/morpheus_llm/morpheus_llm/_lib -name "*.so" -exec realpath --relative-to ${MORPHEUS_ROOT} {} \;) \
                 $(find ${MORPHEUS_ROOT}/examples -name "*.so" -exec realpath --relative-to ${MORPHEUS_ROOT} {} \;))
-tar cfj "${WORKSPACE_TMP}/morhpeus_libs.tar.bz" "${MORPHEUS_LIBS[@]}"
+tar cfj "${WORKSPACE_TMP}/morhpeus_libs-${REAL_ARCH}.tar.bz" "${MORPHEUS_LIBS[@]}"
 
 CPP_TESTS=($(find ${MORPHEUS_ROOT}/${BUILD_DIR}/python/morpheus/morpheus/_lib/tests -name "*.x" -exec realpath --relative-to ${MORPHEUS_ROOT} {} \;) \
             $(find ${MORPHEUS_ROOT}/${BUILD_DIR}/python/morpheus_llm/morpheus_llm/_lib/tests -name "*.x" -exec realpath --relative-to ${MORPHEUS_ROOT} {} \;))
-tar cfj "${WORKSPACE_TMP}/cpp_tests.tar.bz" "${CPP_TESTS[@]}"
+tar cfj "${WORKSPACE_TMP}/cpp_tests-${REAL_ARCH}.tar.bz" "${CPP_TESTS[@]}"
 
 rapids-logger "Pushing results to ${DISPLAY_ARTIFACT_URL}"
 set_job_summary_preamble
-upload_artifact "${WORKSPACE_TMP}/wheel.tar.bz"
-upload_artifact "${WORKSPACE_TMP}/morhpeus_libs.tar.bz"
-upload_artifact "${WORKSPACE_TMP}/cpp_tests.tar.bz"
+upload_artifact "${WORKSPACE_TMP}/wheel-${REAL_ARCH}.tar.bz"
+upload_artifact "${WORKSPACE_TMP}/morhpeus_libs-${REAL_ARCH}.tar.bz"
+upload_artifact "${WORKSPACE_TMP}/cpp_tests-${REAL_ARCH}.tar.bz"
 
 rapids-logger "Success"
 exit 0

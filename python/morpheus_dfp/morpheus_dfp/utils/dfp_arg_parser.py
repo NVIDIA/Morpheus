@@ -1,4 +1,4 @@
-# Copyright (c) 2023-2024, NVIDIA CORPORATION.
+# Copyright (c) 2023-2025, NVIDIA CORPORATION.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -36,12 +36,12 @@ class TimeFields:
 class DFPArgParser:
 
     def __init__(self,
-                 skip_user: str,
-                 only_user: str,
-                 start_time: str,
+                 skip_user: tuple[str],
+                 only_user: tuple[str],
+                 start_time: datetime | None,
                  log_level: int,
                  cache_dir: str,
-                 sample_rate_s: str,
+                 sample_rate_s: int,
                  duration: str,
                  source: str,
                  tracking_uri: str,

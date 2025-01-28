@@ -1,5 +1,5 @@
 #!/bin/bash
-# SPDX-FileCopyrightText: Copyright (c) 2022-2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-FileCopyrightText: Copyright (c) 2022-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 # SPDX-License-Identifier: Apache-2.0
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -32,6 +32,7 @@ cd ${MORPHEUS_ROOT}
 # will be defined specifying the subset we are allowed to use.
 NUM_CORES=$(nproc)
 export PARALLEL_LEVEL=${PARALLEL_LEVEL:-${NUM_CORES}}
+export REAL_ARCH=${REAL_ARCH:-$(arch)}
 rapids-logger "Procs: ${NUM_CORES}"
 /usr/bin/lscpu
 
@@ -143,8 +144,8 @@ function show_conda_info() {
 function log_toolchain() {
     rapids-logger "Check versions"
     python3 --version
-    x86_64-conda-linux-gnu-cc --version
-    x86_64-conda-linux-gnu-c++ --version
+    ${REAL_ARCH}-conda-linux-gnu-cc --version
+    ${REAL_ARCH}-conda-linux-gnu-c++ --version
     cmake --version
     ninja --version
     sccache --version

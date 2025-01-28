@@ -1,5 +1,5 @@
 <!--
-SPDX-FileCopyrightText: Copyright (c) 2022-2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+SPDX-FileCopyrightText: Copyright (c) 2022-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 SPDX-License-Identifier: Apache-2.0
 
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -159,11 +159,11 @@ Morpheus provides multiple Conda environment files to support different workflow
 The following are the available Conda environment files, all are located in the `conda/environments` directory, with the following naming convention: `<environment>_<cuda_version>_arch-<architecture>.yaml`.
 | Environment | File | Description |
 | --- | --- | --- |
-| `all` | `all_cuda-125_arch-x86_64.yaml` | All dependencies required to build, run and test Morpheus, along with all of the examples. This is a superset of the `dev`, `runtime` and `examples` environments. |
-| `dev` | `dev_cuda-125_arch-x86_64.yaml` | Dependencies required to build, run and test Morpheus. This is a superset of the `runtime` environment. |
-| `examples` | `examples_cuda-125_arch-x86_64.yaml` | Dependencies required to run all examples. This is a superset of the `runtime` environment. |
-| `model-utils` | `model-utils_cuda-125_arch-x86_64.yaml` | Dependencies required to train models independent of Morpheus. |
-| `runtime` | `runtime_cuda-125_arch-x86_64.yaml` | Minimal set of dependencies strictly required to run Morpheus. |
+| `all` | `all_cuda-125_arch-<arch>.yaml` | All dependencies required to build, run and test Morpheus, along with all of the examples. This is a superset of the `dev`, `runtime` and `examples` environments. |
+| `dev` | `dev_cuda-125_arch-<arch>.yaml` | Dependencies required to build, run and test Morpheus. This is a superset of the `runtime` environment. |
+| `examples` | `examples_cuda-125_arch-<arch>.yaml` | Dependencies required to run all examples. This is a superset of the `runtime` environment. |
+| `model-utils` | `model-utils_cuda-125_arch-<arch>.yaml` | Dependencies required to train models independent of Morpheus. |
+| `runtime` | `runtime_cuda-125_arch-<arch>.yaml` | Minimal set of dependencies strictly required to run Morpheus. |
 
 
 ##### Updating Morpheus Dependencies
@@ -200,11 +200,11 @@ When ready, commit both the changes to the `dependencies.yaml` file and the upda
    ```
 1. Create the Morpheus Conda environment using either the `dev` or `all` environment file. Refer to the [Conda Environment YAML Files](#conda-environment-yaml-files) section for more information.
    ```bash
-   conda env create --solver=libmamba -n morpheus --file conda/environments/dev_cuda-125_arch-x86_64.yaml
+   conda env create --solver=libmamba -n morpheus --file conda/environments/dev_cuda-125_arch-$(arch).yaml
    ```
    or
    ```bash
-   conda env create --solver=libmamba -n morpheus --file conda/environments/all_cuda-125_arch-x86_64.yaml
+   conda env create --solver=libmamba -n morpheus --file conda/environments/all_cuda-125_arch-$(arch).yaml
 
    ```
 

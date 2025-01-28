@@ -1,5 +1,5 @@
 #!/bin/bash
-# SPDX-FileCopyrightText: Copyright (c) 2021-2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-FileCopyrightText: Copyright (c) 2021-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 # SPDX-License-Identifier: Apache-2.0
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -30,7 +30,7 @@ DOCKER_IMAGE_TAG=${DOCKER_IMAGE_TAG:?"Must set \$DOCKER_IMAGE_TAG. ${_UNDEF_VAR_
 # DOCKER_ARGS are set by the dev/release scripts
 # DOCKER_EXTRA_ARGS are optionally set by the user
 DOCKER_ARGS=${DOCKER_ARGS:-""}
-DOCKER_ARGS="${DOCKER_ARGS} --net=host --cap-add=sys_nice ${DOCKER_EXTRA_ARGS}"
+DOCKER_ARGS="${DOCKER_ARGS} --net=host --cap-add=sys_nice --platform=linux/${DOCKER_TARGET_ARCH} ${DOCKER_EXTRA_ARGS}"
 DOCKER_EXTRA_ARGS=${DOCKER_EXTRA_ARGS:-""}
 
 if [[ -n "${CPU_ONLY}" ]]; then

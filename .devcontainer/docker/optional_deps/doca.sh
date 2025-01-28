@@ -1,5 +1,5 @@
 #!/bin/bash
-# SPDX-FileCopyrightText: Copyright (c) 2021-2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-FileCopyrightText: Copyright (c) 2021-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 # SPDX-License-Identifier: Apache-2.0
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -20,6 +20,7 @@ MORPHEUS_SUPPORT_DOCA=${MORPHEUS_SUPPORT_DOCA:-OFF}
 LINUX_DISTRO=${LINUX_DISTRO:-ubuntu}
 LINUX_VER=${LINUX_VER:-22.04}
 DOCA_VERSION=${DOCA_VERSION:-2.7.0}
+PKG_ARCH=${PKG_ARCH:-$(dpkg --print-architecture)}
 
 # Exit early if nothing to do
 if [[ ${MORPHEUS_SUPPORT_DOCA} != @(TRUE|ON) ]]; then
@@ -35,7 +36,7 @@ DEB_DIR=${WORKING_DIR}/deb
 mkdir -p ${DEB_DIR}
 
 DOCA_OS_VERSION="ubuntu2204"
-DOCA_PKG_LINK="https://www.mellanox.com/downloads/DOCA/DOCA_v${DOCA_VERSION}/host/doca-host_${DOCA_VERSION}-204000-24.04-${DOCA_OS_VERSION}_amd64.deb"
+DOCA_PKG_LINK="https://www.mellanox.com/downloads/DOCA/DOCA_v${DOCA_VERSION}/host/doca-host_${DOCA_VERSION}-204000-24.04-${DOCA_OS_VERSION}_${PKG_ARCH}.deb"
 
 # Upgrade the base packages (diff between image and Canonical upstream repo)
 apt update -y

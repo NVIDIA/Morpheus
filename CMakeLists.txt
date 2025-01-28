@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: Copyright (c) 2018-2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-FileCopyrightText: Copyright (c) 2018-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 # SPDX-License-Identifier: Apache-2.0
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -99,7 +99,7 @@ morpheus_utils_initialize_cuda_arch(morpheus)
 # Note intentionally excluding CUDA from the LANGUAGES list allowing us to set some clang specific settings later when
 # we call morpheus_utils_enable_cuda()
 project(morpheus
-  VERSION 24.10.00
+  VERSION 25.02.00
   LANGUAGES C CXX
 )
 
@@ -131,6 +131,13 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS OFF)
 add_custom_target(${PROJECT_NAME}_style_checks
   COMMENT "Building dependencies for style checks"
 )
+
+# CMAKE_LIBRARY_ARCHITECTURE is needed to find DOCA dependencies
+if(NOT DEFINED CMAKE_LIBRARY_ARCHITECTURE)
+  set(CMAKE_LIBRARY_ARCHITECTURE "${CMAKE_SYSTEM_PROCESSOR}-${CMAKE_SYSTEM_NAME}-${CMAKE_CXX_COMPILER_ID}")
+  string(TOLOWER "${CMAKE_LIBRARY_ARCHITECTURE}" CMAKE_LIBRARY_ARCHITECTURE)
+  message(STATUS "Setting CMAKE_LIBRARY_ARCHITECTURE to ${CMAKE_LIBRARY_ARCHITECTURE}")
+endif()
 
 # Configure all dependencies
 include(dependencies)

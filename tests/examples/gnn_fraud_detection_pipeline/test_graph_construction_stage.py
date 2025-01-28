@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: Copyright (c) 2023-2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-FileCopyrightText: Copyright (c) 2023-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 # SPDX-License-Identifier: Apache-2.0
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -28,6 +28,7 @@ from morpheus.messages import MessageMeta
 # pylint: disable=no-name-in-module
 
 
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="Need CUDA enabled torch installation")
 @pytest.mark.gpu_mode
 class TestGraphConstructionStage:
 

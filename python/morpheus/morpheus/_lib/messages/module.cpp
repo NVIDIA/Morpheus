@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: Copyright (c) 2021-2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * SPDX-FileCopyrightText: Copyright (c) 2021-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -290,6 +290,7 @@ PYBIND11_MODULE(messages, _module)
             py::arg("meta"))
         .def("tensors", pybind11::overload_cast<>(&ControlMessage::tensors))
         .def("tensors", pybind11::overload_cast<const std::shared_ptr<TensorMemory>&>(&ControlMessage::tensors))
+        .def("tensor_count", &ControlMessage::tensor_count)
         .def("remove_task", &ControlMessage::remove_task, py::arg("task_type"))
         .def("set_metadata", &ControlMessage::set_metadata, py::arg("key"), py::arg("value"))
         .def("task_type", pybind11::overload_cast<>(&ControlMessage::task_type))

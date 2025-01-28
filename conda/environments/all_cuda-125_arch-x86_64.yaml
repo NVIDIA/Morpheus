@@ -51,8 +51,10 @@ dependencies:
 - grpcio-status
 - gtest=1.14
 - gxx=12.1
+- httpx>=0.23,<0.28
 - huggingface_hub=0.20.2
 - include-what-you-use=0.20
+- indicators=2.3
 - ipython
 - isort
 - jsonpatch>=1.33
@@ -67,18 +69,18 @@ dependencies:
 - libwebp=1.3.2
 - libzlib >=1.3.1,<2
 - mlflow>=2.10.0,<2.18
-- mrc=24.10
+- mrc=25.02
 - myst-parser=0.18.1
 - nbsphinx
 - networkx=2.8.8
-- newspaper3k=0.2
+- newspaper3k==0.2.8
 - ninja=1.11
 - nlohmann_json=3.11
 - nodejs=18.*
 - numexpr
 - numpydoc=1.5
 - onnx=1.15
-- openai=1.13
+- openai==1.13.*
 - papermill=2.4.0
 - pip
 - pkg-config=0.29
@@ -90,7 +92,7 @@ dependencies:
 - pylint=3.0.3
 - pynvml=11.4
 - pypdf=3.17.4
-- pypdfium2=4.30
+- pypdfium2==4.30
 - pytest-asyncio
 - pytest-benchmark=4.0
 - pytest-cov
@@ -123,7 +125,7 @@ dependencies:
 - versioneer-518
 - watchdog=3.0
 - websockets
-- yapf=0.40.1
+- yapf=0.43
 - pip:
   - --extra-index-url https://download.pytorch.org/whl/cu124
   - --find-links https://data.dgl.ai/wheels-test/repo.html
@@ -135,6 +137,7 @@ dependencies:
   - faiss-cpu
   - google-search-results==2.4
   - langchain-nvidia-ai-endpoints==0.0.11
+  - langchain-openai==0.1.3
   - langchain==0.1.16
   - milvus==2.3.5
   - nemollm==0.3.5

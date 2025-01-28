@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# SPDX-FileCopyrightText: Copyright (c) 2022-2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-FileCopyrightText: Copyright (c) 2022-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 # SPDX-License-Identifier: Apache-2.0
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -87,6 +87,13 @@ def train_df_fixture(dataset_pandas: DatasetManager) -> typing.Iterator[pd.DataF
     yield dataset_pandas[os.path.join(TEST_DIRS.validation_data_dir, "dfp-cloudtrail-role-g-validation-data-input.csv")]
 
 
+@pytest.fixture(name="expected_device_type", scope="session")
+def expected_device_type_fixture() -> str:
+    if torch.cuda.is_available():
+        return 'cuda'
+    return 'cpu'
+
+
 def compare_numeric_features(features, expected_features):
     assert sorted(features.keys()) == sorted(expected_features.keys())
     for (feature, expected_vals) in expected_features.items():
@@ -100,6 +107,7 @@ def compare_numeric_features(features, expected_features):
         assert isinstance(ae_vals['scaler'], expected_vals['scaler_cls'])
 
 
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="Need CUDA enabled torch installation")
 def test_ohe():
     tensor = torch.tensor(range(4), dtype=torch.int64)
     results = autoencoder._ohe(tensor, 4, device="cpu")
@@ -172,7 +180,7 @@ def test_complete_layer_forward():
     assert torch.equal(torch.round(results, decimals=4), expected), f"{results} != {expected}"
 
 
-def test_auto_encoder_constructor_default_vals():
+def test_auto_encoder_constructor_default_vals(expected_device_type: str):
     ae = autoencoder.AutoEncoder()
     assert isinstance(ae.model, torch.nn.Module)
     assert ae.model.encoder_layers is None
@@ -185,12 +193,12 @@ def test_auto_encoder_constructor_default_vals():
     assert ae.optimizer == 'adam'
     assert ae.learning_rate == 0.01
     assert ae.learning_rate_decay is None
-    assert ae.device.type == 'cuda'
+    assert ae.device.type == expected_device_type
     assert ae.scaler == 'standard'
     assert ae.loss_scaler is scalers.StandardScaler
 
 
-def test_auto_encoder_constructor(train_ae: autoencoder.AutoEncoder):
+def test_auto_encoder_constructor(train_ae: autoencoder.AutoEncoder, expected_device_type: str):
     """
     Test copnstructor invokation using the values used by `train_ae_stage`
     """
@@ -207,7 +215,7 @@ def test_auto_encoder_constructor(train_ae: autoencoder.AutoEncoder):
     assert train_ae.learning_rate_decay == 0.99
     assert not train_ae.progress_bar
     assert not train_ae.verbose
-    assert train_ae.device.type == 'cuda'
+    assert train_ae.device.type == expected_device_type
     assert train_ae.scaler == 'standard'
     assert train_ae.loss_scaler is scalers.StandardScaler
 
@@ -456,13 +464,13 @@ def test_auto_encoder_prepare_df(train_ae: autoencoder.AutoEncoder, train_df: pd
             assert '_other' not in prepared_df[cat].values
 
 
-def test_build_input_tensor(train_ae: autoencoder.AutoEncoder, train_df: pd.DataFrame):
+def test_build_input_tensor(train_ae: autoencoder.AutoEncoder, train_df: pd.DataFrame, expected_device_type: str):
     train_ae.fit(train_df, epochs=1)
     prepared_df = train_ae.prepare_df(train_df)
     tensor = train_ae.build_input_tensor(prepared_df)
 
     assert isinstance(tensor, torch.Tensor)
-    assert tensor.device.type == 'cuda'
+    assert tensor.device.type == expected_device_type
     assert len(tensor) == len(train_df)
 
 

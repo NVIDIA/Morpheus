@@ -1,4 +1,4 @@
-# Copyright (c) 2021-2024, NVIDIA CORPORATION.
+# Copyright (c) 2021-2025, NVIDIA CORPORATION.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -568,7 +568,7 @@ class TritonInferenceWorker(InferenceWorker):
             raise ex
 
     def calc_output_dims(self, msg: ControlMessage) -> typing.Tuple:
-        return (msg.tensors().count, self._outputs[list(self._outputs.keys())[0]].shape[1])
+        return (msg.tensor_count(), self._outputs[list(self._outputs.keys())[0]].shape[1])
 
     def _build_response(
             self,

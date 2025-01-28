@@ -1,5 +1,5 @@
 <!--
-# Copyright (c) 2021-2024, NVIDIA CORPORATION.
+# Copyright (c) 2021-2025, NVIDIA CORPORATION.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -24,12 +24,12 @@ Pull Morpheus Models Docker image from NGC.
 Example:
 
 ```bash
-docker pull nvcr.io/nvidia/morpheus/morpheus-tritonserver-models:24.10
+docker pull nvcr.io/nvidia/morpheus/morpheus-tritonserver-models:25.02
 ```
 
 ##### Start Triton Inference Server container
 ```bash
-docker run --gpus=all --rm -p8000:8000 -p8001:8001 -p8002:8002 nvcr.io/nvidia/morpheus/morpheus-tritonserver-models:24.10 tritonserver --model-repository=/models/triton-model-repo --model-control-mode=explicit --load-model sid-minibert-onnx --load-model abp-nvsmi-xgb --load-model phishing-bert-onnx --load-model all-MiniLM-L6-v2
+docker run --gpus=all --rm -p8000:8000 -p8001:8001 -p8002:8002 nvcr.io/nvidia/morpheus/morpheus-tritonserver-models:25.02 tritonserver --model-repository=/models/triton-model-repo --model-control-mode=explicit --load-model sid-minibert-onnx --load-model abp-nvsmi-xgb --load-model phishing-bert-onnx --load-model all-MiniLM-L6-v2
 ```
 
 ##### Verify Model Deployments
@@ -195,7 +195,7 @@ Separate benchmark tests are provided to measure performance of the example [Pro
 You can use the same Dev container created here to run the Production DFP benchmarks. You would just need to install additional dependencies as follows:
 
 ```bash
-mamba env update \
+conda env update --solver=libmamba \
   -n ${CONDA_DEFAULT_ENV} \
-  --file ./conda/environments/examples_cuda-125_arch-x86_64.yaml
+  --file ./conda/environments/examples_cuda-125_arch-$(arch).yaml
 ```

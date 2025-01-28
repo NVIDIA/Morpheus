@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: Copyright (c) 2022-2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-FileCopyrightText: Copyright (c) 2022-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 # SPDX-License-Identifier: Apache-2.0
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -96,8 +96,8 @@ jobs:
       # Upload morpheus conda packages only for non PR branches. Use 'main' for main branch and 'dev' for all other branches
       conda_upload_label: ${{ !fromJSON(needs.prepare.outputs.is_pr) && (fromJSON(needs.prepare.outputs.is_main_branch) && 'main' || 'dev') || '' }}
       base_container: rapidsai/ci-conda:cuda12.5.1-ubuntu22.04-py3.10
-      container: nvcr.io/ea-nvidia-morpheus/morpheus:morpheus-ci-build-241024
-      test_container: nvcr.io/ea-nvidia-morpheus/morpheus:morpheus-ci-test-241024
+      container: nvcr.io/ea-nvidia-morpheus/morpheus:morpheus-ci-build-250102
+      test_container: nvcr.io/ea-nvidia-morpheus/morpheus:morpheus-ci-test-250102
     secrets:
       CONDA_TOKEN: ${{ secrets.CONDA_TOKEN }}
       NGC_API_KEY: ${{ secrets.NGC_API_KEY }}

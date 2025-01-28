@@ -1,4 +1,4 @@
-# Copyright (c) 2021-2024, NVIDIA CORPORATION.
+# Copyright (c) 2021-2025, NVIDIA CORPORATION.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -84,7 +84,7 @@ CUR_DIR = os.path.dirname(__file__)
 @click.option(
     "--output_file",
     type=click.Path(dir_okay=False),
-    default="output.csv",
+    default=".tmp/output/gnn_fraud_detection_output.csv",
     help="The path to the file where the inference output will be saved.",
 )
 def run_pipeline(num_threads,

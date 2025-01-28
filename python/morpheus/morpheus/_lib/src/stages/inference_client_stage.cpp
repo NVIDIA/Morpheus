@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: Copyright (c) 2024, NVIDIA CORPORATION & AFFILIATES.
+ * SPDX-FileCopyrightText: Copyright (c) 2024-2025, NVIDIA CORPORATION & AFFILIATES.
  * All rights reserved. SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -58,7 +58,7 @@ static ShapeType get_seq_ids(const std::shared_ptr<ControlMessage>& message)
     auto seq_ids         = message->tensors()->get_tensor("seq_ids");
     const auto item_size = seq_ids.dtype().item_size();
 
-    ShapeType host_seq_ids(message->tensors()->count);
+    ShapeType host_seq_ids(message->tensor_count());
     MRC_CHECK_CUDA(cudaMemcpy2D(host_seq_ids.data(),
                                 item_size,
                                 seq_ids.data(),
@@ -82,7 +82,7 @@ static TensorObject get_tensor(std::shared_ptr<ControlMessage> message, std::str
 
 static void reduce_outputs(std::shared_ptr<ControlMessage> const& message, TensorMap& output_tensors)
 {
-    if (message->payload()->count() == message->tensors()->count)
+    if (message->payload()->count() == message->tensor_count())
     {
         return;
     }

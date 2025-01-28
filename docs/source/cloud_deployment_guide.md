@@ -1,5 +1,5 @@
 <!--
-SPDX-FileCopyrightText: Copyright (c) 2022-2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+SPDX-FileCopyrightText: Copyright (c) 2022-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 SPDX-License-Identifier: Apache-2.0
 
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -103,7 +103,7 @@ The Helm chart (`morpheus-ai-engine`) that offers the auxiliary components requi
 Follow the below steps to install Morpheus AI Engine:
 
 ```bash
-helm fetch https://helm.ngc.nvidia.com/nvidia/morpheus/charts/morpheus-ai-engine-24.10.tgz --username='$oauthtoken' --password=$API_KEY --untar
+helm fetch https://helm.ngc.nvidia.com/nvidia/morpheus/charts/morpheus-ai-engine-25.02.tgz --username='$oauthtoken' --password=$API_KEY --untar
 ```
 ```bash
 helm install --set ngc.apiKey="$API_KEY" \
@@ -145,7 +145,7 @@ replicaset.apps/zookeeper-87f9f4dd     1         1         1       54s
 Run the following command to pull the Morpheus SDK Client (referred to as Helm chart `morpheus-sdk-client`) on to your instance:
 
 ```bash
-helm fetch https://helm.ngc.nvidia.com/nvidia/morpheus/charts/morpheus-sdk-client-24.10.tgz --username='$oauthtoken' --password=$API_KEY --untar
+helm fetch https://helm.ngc.nvidia.com/nvidia/morpheus/charts/morpheus-sdk-client-25.02.tgz --username='$oauthtoken' --password=$API_KEY --untar
 ```
 
 #### Morpheus SDK Client in Sleep Mode
@@ -183,7 +183,7 @@ kubectl -n $NAMESPACE exec sdk-cli-helper -- cp -RL /workspace/models /common
 The Morpheus MLflow Helm chart offers MLflow server with Triton plugin to deploy, update, and remove models from the Morpheus AI Engine. The MLflow server UI can be accessed using NodePort `30500`. Follow the below steps to install the Morpheus MLflow:
 
 ```bash
-helm fetch https://helm.ngc.nvidia.com/nvidia/morpheus/charts/morpheus-mlflow-24.10.tgz --username='$oauthtoken' --password=$API_KEY --untar
+helm fetch https://helm.ngc.nvidia.com/nvidia/morpheus/charts/morpheus-mlflow-25.02.tgz --username='$oauthtoken' --password=$API_KEY --untar
 ```
 ```bash
 helm install --set ngc.apiKey="$API_KEY" \

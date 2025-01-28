@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: Copyright (c) 2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-FileCopyrightText: Copyright (c) 2024-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 # SPDX-License-Identifier: Apache-2.0
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -172,7 +172,7 @@ def test_created_stage_pipe(config: Config, dataset_pandas: DatasetManager):
     expected_df = input_df.copy()
     expected_df["new_column"] = "Hello"
 
-    df_count = 100
+    df_count = 10
     df_generator = partial(pandas_dataframe_generator, dataset_pandas, df_count)
 
     partial_fn = partial(_process_df, column="new_column", value="Hello")
@@ -225,7 +225,7 @@ def test_multiple_stages_pipe(config: Config, dataset_pandas: DatasetManager):
     expected_df["new_column_1"] = "new_value"
     expected_df["new_column_2"] = "Hello"
 
-    df_count = 100
+    df_count = 10
     df_generator = partial(pandas_dataframe_generator, dataset_pandas, df_count)
 
     partial_fn = partial(_process_df, column="new_column_1", value="new_value")

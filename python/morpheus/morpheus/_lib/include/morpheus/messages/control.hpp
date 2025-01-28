@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: Copyright (c) 2021-2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * SPDX-FileCopyrightText: Copyright (c) 2021-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -19,6 +19,7 @@
 
 #include "morpheus/export.h"                  // for MORPHEUS_EXPORT
 #include "morpheus/messages/meta.hpp"         // for MessageMeta
+#include "morpheus/types.hpp"
 #include "morpheus/utilities/json_types.hpp"  // for json_t
 
 #include <pybind11/pytypes.h>  // for object, dict, list
@@ -198,6 +199,13 @@ class MORPHEUS_EXPORT ControlMessage
     void tensors(const std::shared_ptr<TensorMemory>& tensor_memory);
 
     /**
+     * @brief Get the length of tensors in the tensor memory.
+     *
+     * @return The length of tensors in the tensor memory.
+     */
+    TensorIndex tensor_count();
+
+    /**
      * @brief Get the type of task associated with the control message.
      * @return An enum value indicating the task type.
      */
@@ -262,6 +270,7 @@ class MORPHEUS_EXPORT ControlMessage
     ControlMessageType m_cm_type{ControlMessageType::NONE};
     std::shared_ptr<MessageMeta> m_payload{nullptr};
     std::shared_ptr<TensorMemory> m_tensors{nullptr};
+    TensorIndex m_tensor_count{0};
 
     morpheus::utilities::json_t m_tasks{};
     morpheus::utilities::json_t m_config{};

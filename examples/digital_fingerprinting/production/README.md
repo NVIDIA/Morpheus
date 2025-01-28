@@ -1,5 +1,5 @@
 <!--
-SPDX-FileCopyrightText: Copyright (c) 2022-2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+SPDX-FileCopyrightText: Copyright (c) 2022-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 SPDX-License-Identifier: Apache-2.0
 
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -44,7 +44,32 @@ docker compose build
 >
 > This is most likely due to using an older version of the `docker-compose` command, instead re-run the build with `docker compose`. Refer to [Migrate to Compose V2](https://docs.docker.com/compose/migrate/) for more information.
 
+### Fetch Example Data
+The `examples/digital_fingerprinting/fetch_example_data.py` script can be used to fetch the Duo and Azure logs to run the example pipelines.
+
+Download the data needed to run the DFP pipeline on Azure / Duo logs:
+```bash
+docker compose run fetch_data
+```
+
+
 ### Running the services
+
+The Morpheus DFP pipeline can be run from either a Jupyter Notebook using the `jupyter` service or from the command line using the `morpheus_pipeline` service. The `mlflow` service is also started in the background to provide a tracking URI for the Morpheus pipeline.
+
+#### Optional MLflow Service
+Starting either the `morpheus_pipeline` or the `jupyter` service, will start the `mlflow` service in the background. For debugging purposes it can be helpful to view the logs of the running MLflow service.
+
+From the `examples/digital_fingerprinting/production` dir run:
+```bash
+docker compose up mlflow
+```
+
+By default, a MLflow dashboard will be available at:
+```bash
+http://localhost:5000
+```
+
 #### Jupyter Server
 From the `examples/digital_fingerprinting/production` dir run:
 ```bash
@@ -70,7 +95,7 @@ Copy and paste the URL into a web browser. There are six notebooks included with
 
 > **Note:** The token in the URL is a one-time use token, and a new one is generated with each invocation.
 
-#### Morpheus Pipeline
+#### Morpheus Pipeline Service
 By default the `morpheus_pipeline` will run the training pipeline for Duo data, from the `examples/digital_fingerprinting/production` dir run:
 ```bash
 docker compose up morpheus_pipeline
@@ -105,29 +130,6 @@ Both scripts are capable of running either a training or inference pipeline for 
 | `--help` | | Show this message and exit. |
 
 ##### Steps to Run Example Pipeline
-The `examples/digital_fingerprinting/fetch_example_data.py` script can be used to fetch the Duo and Azure logs to run the example pipelines.
-
-```bash
-export DFP_HOME=examples/digital_fingerprinting
-```
-
-Usage of the script is as follows:
-```bash
-python $DFP_HOME/fetch_example_data.py --help
-
-usage: Fetches training and inference data for DFP examples [-h] [{azure,duo,all} [{azure,duo,all} ...]]
-
-positional arguments:
-  {azure,duo,all}  Data set to fetch
-
-optional arguments:
-  -h, --help       show this help message and exit
-```
-
-Download the data needed to run a pipeline on Azure / Duo logs:
-```bash
-python $DFP_HOME/fetch_example_data.py all
-```
 
 Run Duo Training Pipeline:
 ```bash
@@ -150,62 +152,8 @@ Run Azure Inference Pipeline:
 python dfp_azure_pipeline.py --train_users none  --start_time "2022-08-30" --input_file="../../data/dfp/azure-inference-data/*.json"
 ```
 
-##### Module-based DFP pipelines
+## Additional Information
 
-The commands in the previous section run stage-based example DFP pipelines. The Morpheus 23.03 release introduced a new, more flexible module-based approach to build pipelines through the use of control messages. More information about modular DFP pipelines can be found [here](../../../docs/source/developer_guide/guides/10_modular_pipeline_digital_fingerprinting.md).
+Additional information on the DFP pipeline, including how it can be customized for additional data sources can be found in the [Digital Fingerprinting Guide](../../../docs/source/developer_guide/guides/5_digital_fingerprinting.md) as well as the [Digital Fingerprinting Reference Guide](../../../docs/source/developer_guide/guides/6_digital_fingerprinting_reference.md).
 
-Commands to run equivalent module-based DFP pipelines can be found [here](../../../docs/source/developer_guide/guides/10_modular_pipeline_digital_fingerprinting.md#running-example-modular-dfp-pipelines).
-
-#### Optional MLflow Service
-Starting either the `morpheus_pipeline` or the `jupyter` service, will start the `mlflow` service in the background. For debugging purposes it can be helpful to view the logs of the running MLflow service.
-
-From the `examples/digital_fingerprinting/production` dir run:
-```bash
-docker compose up mlflow
-```
-
-By default, a MLflow dashboard will be available at:
-```bash
-http://localhost:5000
-```
-
-## Kubernetes deployment
-
-The Morpheus project also maintains Helm charts and container images for Kubernetes deployment of Morpheus and MLflow (both for serving and for the Triton plugin). These are located in the NVIDIA GPU Cloud (NGC) [public catalog](https://catalog.ngc.nvidia.com/orgs/nvidia/teams/morpheus/collections/morpheus_).
-
-### MLflow Helm chart
-
-MLflow for this production digital fingerprint use case can be installed from NGC using these same instructions for the [MLflow Triton Plugin from the Morpheus Cloud Deployment Guide](../../../docs/source/cloud_deployment_guide.md#install-morpheus-mlflow-triton-plugin). The chart and image can be used for both the Triton plugin and also MLflow server.
-
-### Production DFP Helm chart
-
-The deployment of the [Morpheus SDK Client](../../../docs/source/cloud_deployment_guide.md#install-morpheus-sdk-client) is also done _almost_ the same way as what's specified in the Cloud Deployment Guide. However, you would specify command arguments differently for this production DFP use case.
-
-Note: The published Morpheus image includes a minimal set of packages for launching JupyterLab but you will likely still want to update the Conda environment inside the running pod with the `conda_env.yml` file in this same directory to install other use case dependencies such as boto3 and s3fs.
-
-#### Notebooks
-
-```
-helm install --set ngc.apiKey="$API_KEY",sdk.args="cd /workspace/examples/digital_fingerprinting/production/morpheus && jupyter-lab --ip='*' --no-browser --allow-root --ServerApp.allow_origin='*'" <sdk-release-name> morpheus-sdk-client/
-```
-
-Make note of the Jupyter token by examining the logs of the SDK pod:
-```
-kubectl logs sdk-cli-<sdk-release-name>
-```
-
-The output should contain something similar to:
-
-```
-    Or copy and paste one of these URLs:
-        http://localhost:8888/lab?token=d16c904468fdf666c5030e18fb82f840e531178bf716e575
-     or http://127.0.0.1:8888/lab?token=d16c904468fdf666c5030e18fb82f840e531178bf716e575
-```
-
-Open your browser to the reachable address and NodePort exposed by the pod (default value of 30888) and use the generated token to login into the notebook.
-
-#### Unattended
-
-```
-helm install --set ngc.apiKey="$API_KEY",sdk.args="cd /workspace/examples/digital_fingerprinting/production/morpheus && ./launch.sh --train_users=generic --duration=1d" <sdk-release-name> morpheus-sdk-client/
-```
+The commands in the previous section run stage-based example DFP pipelines. The Morpheus 23.03 release introduced a new, more flexible module-based approach to build pipelines through the use of control messages. More information about modular DFP pipelines can be found at [Introduction to Modular Digital Fingerprinting Pipeline Guide](../../../docs/source/developer_guide/guides/10_modular_pipeline_digital_fingerprinting.md). Along with the commands to run equivalent module-based DFP pipelines are available at [Running Example Modular DFP Pipelines](../../../docs/source/developer_guide/guides/10_modular_pipeline_digital_fingerprinting.md#running-example-modular-dfp-pipelines).

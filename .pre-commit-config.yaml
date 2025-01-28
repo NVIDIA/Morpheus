@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: Copyright (c) 2022-2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-FileCopyrightText: Copyright (c) 2022-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 # SPDX-License-Identifier: Apache-2.0
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -32,7 +32,7 @@ repos:
                 additional_dependencies: [pyproject-flake8]
                 args: ["--config=./pyproject.toml"]
       - repo: https://github.com/google/yapf
-        rev: v0.40.2
+        rev: v0.43.0
         hooks:
               - id: yapf
                 args: ["--style", "./pyproject.toml"]

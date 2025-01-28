@@ -1,4 +1,4 @@
-# Copyright (c) 2024, NVIDIA CORPORATION.
+# Copyright (c) 2024-2025, NVIDIA CORPORATION.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -46,6 +46,7 @@ class ControlMessage(MessageBase, cpp_class=_messages.ControlMessage):
 
         self._payload: MessageMeta = None
         self._tensors: TensorMemory = None
+        self._tensor_count: int = 0
 
         self._tasks: dict[str, deque] = defaultdict(deque)
         self._timestamps: dict[str, datetime] = {}
@@ -147,8 +148,12 @@ class ControlMessage(MessageBase, cpp_class=_messages.ControlMessage):
     def tensors(self, tensors: TensorMemory = None) -> TensorMemory | None:
         if tensors is not None:
             self._tensors = tensors
+            self._tensor_count = tensors.count
 
         return self._tensors
+
+    def tensor_count(self) -> int:
+        return self._tensor_count
 
     def task_type(self, new_task_type: ControlMessageType = None) -> ControlMessageType:
         if new_task_type is not None:

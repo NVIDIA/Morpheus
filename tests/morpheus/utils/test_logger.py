@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: Copyright (c) 2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-FileCopyrightText: Copyright (c) 2024-2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 # SPDX-License-Identifier: Apache-2.0
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -34,9 +34,12 @@ from morpheus.utils.logger import set_log_level
 
 
 def _flush_logging_queue(logger: logging.Logger):
+    # Per Python documentation, the `empty` method is not reliable, adding a safety sleep
+    # https://docs.python.org/3.10/library/multiprocessing.html?highlight=queue#multiprocessing.Queue.empty
+    time.sleep(0.1)
     for handler in logger.handlers:
         if isinstance(handler, logging.handlers.QueueHandler):
-            while (handler.queue.qsize() != 0):
+            while (not handler.queue.empty()):
                 time.sleep(0.01)
 
 
