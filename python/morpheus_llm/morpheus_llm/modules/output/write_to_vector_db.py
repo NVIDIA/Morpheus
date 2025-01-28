@@ -147,7 +147,10 @@ def _write_to_vector_db(builder: mrc.Builder):
                     if accum_stats.data:
                         df_pkg = get_df_pkg_from_obj(accum_stats.data[0])
                         merged_df = df_pkg.concat(accum_stats.data)
+                        print("Before Inerting data ...")
+                        merged_df.info()
                         service.insert_dataframe(name=key, df=merged_df)
+                        print("After Inserting data")
                         final_df_references.append(accum_stats.data)
                 except Exception as e:
                     logger.error("Unable to upload dataframe entries to vector database: %s", e)
@@ -163,6 +166,8 @@ def _write_to_vector_db(builder: mrc.Builder):
             df = msg.payload().df
             if (msg.has_metadata("vdb_resource")):
                 resource_name = msg.get_metadata("vdb_resource")
+                df.info()
+                print("Resource name = ", resource_name)
             else:
                 resource_name = None
         else:

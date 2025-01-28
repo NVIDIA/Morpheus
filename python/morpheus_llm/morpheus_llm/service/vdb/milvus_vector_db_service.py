@@ -265,6 +265,7 @@ class MilvusVectorDBResourceService(VectorDBResourceService):
         self._truncate_long_strings = truncate_long_strings
 
         self._collection.load()
+        print("Resource created ...")
 
     def _set_up_collection(self):
         """
@@ -310,20 +311,29 @@ class MilvusVectorDBResourceService(VectorDBResourceService):
             Returns response content as a dictionary.
         """
         # Ensure that there are no None values in the DataFrame entries.
+        print("##### 1")
+        print(self._fillna_fields_dict.items())
         for field_name, dtype in self._fillna_fields_dict.items():
             if dtype in (pymilvus.DataType.VARCHAR, pymilvus.DataType.STRING):
+                print("##### 1 1")
                 df[field_name] = df[field_name].fillna("")
             elif dtype in (pymilvus.DataType.INT8,
                            pymilvus.DataType.INT16,
                            pymilvus.DataType.INT32,
                            pymilvus.DataType.INT64):
+                print("##### 1 2")
                 df[field_name] = df[field_name].fillna(0)
             elif dtype in (pymilvus.DataType.FLOAT, pymilvus.DataType.DOUBLE):
+                print("##### 1 3")
                 df[field_name] = df[field_name].fillna(0.0)
             elif dtype == pymilvus.DataType.BOOL:
+                print("##### 1 4")
                 df[field_name] = df[field_name].fillna(False)
             else:
+                print("##### 1 5")
                 logger.info("Skipped checking 'None' in the field: %s, with datatype: %s", field_name, dtype)
+
+        print("##### 2")
 
         needs_truncate = self._truncate_long_strings
         if needs_truncate and is_cudf_type(df):
@@ -333,6 +343,7 @@ class MilvusVectorDBResourceService(VectorDBResourceService):
 
         # From the schema, this is the list of columns we need, excluding any auto_id columns
         column_names = [field.name for field in self._fields if not field.auto_id]
+        print(column_names)
 
         collection_df = df[column_names]
         if is_cudf_type(collection_df):
@@ -342,6 +353,7 @@ class MilvusVectorDBResourceService(VectorDBResourceService):
             truncate_string_cols_by_bytes(collection_df, self._fields_max_length, warn_on_truncate=True)
 
         # Note: dataframe columns has to be in the order of collection schema fields.s
+        print(collection_df.to_string(max_rows=3))
         result = self._collection.insert(data=collection_df, **kwargs)
         self._collection.flush()
 
@@ -854,6 +866,8 @@ class MilvusVectorDBService(VectorDBService):
             If the collection not exists exists.
         """
         resource = self.load_resource(name)
+        print(name)
+        print(resource)
 
         return resource.insert_dataframe(df=df, **kwargs)
 

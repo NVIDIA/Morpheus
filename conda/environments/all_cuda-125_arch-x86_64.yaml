@@ -142,6 +142,7 @@ dependencies:
   - milvus==2.3.5
   - nemollm==0.3.5
   - pymilvus==2.3.6
+  - gpudb>=7.2.2.3
   - pytest-kafka==0.6.0
   - python-logging-loki
   - sentence-transformers==2.7

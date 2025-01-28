@@ -37,6 +37,8 @@ from morpheus_llm.llm.services.openai_chat_service import OpenAIChatService
 from morpheus_llm.llm.task_handlers.simple_task_handler import SimpleTaskHandler
 from morpheus_llm.stages.llm.llm_engine_stage import LLMEngineStage
 
+from morpheus_llm.stages.output.write_to_vector_db_stage import WriteToVectorDBStage
+
 logger = logging.getLogger(__name__)
 
 
@@ -126,6 +128,8 @@ def pipeline(use_cpu_only: bool,
     pipe.add_stage(LLMEngineStage(config, engine=_build_engine(llm_service=llm_service)))
 
     pipe.add_stage(MonitorStage(config, description="Inference rate", unit="req", delayed_start=True))
+
+    pipe.add_stage(WriteToVectorDBStage())
 
     sink = pipe.add_stage(InMemorySinkStage(config))
 
