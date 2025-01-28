@@ -134,5 +134,5 @@ morpheus --log_level INFO \
 	gnn-fraud-classification --model_xgb_file examples/gnn_fraud_detection_pipeline/model/xgb.pt \
 	monitor --description "Add classification rate" \
 	serialize \
-	to-file --filename "gnn_fraud_detection_cli_output.csv" --overwrite
+	to-file --filename ".tmp/output/gnn_fraud_detection_cli_output.csv" --overwrite
 ```
